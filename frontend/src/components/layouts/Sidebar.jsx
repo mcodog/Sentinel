@@ -1,9 +1,19 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { LuClipboard, LuGitGraph, LuUsers, LuHouse } from "react-icons/lu";
+import {
+  LuClipboard,
+  LuGitGraph,
+  LuUsers,
+  LuHouse,
+  LuTimer,
+} from "react-icons/lu";
 import SidebarLink from "./SidebarLink";
 
 const Sidebar = () => {
+  const user = {
+    role: "doctor",
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-center">
@@ -16,15 +26,37 @@ const Sidebar = () => {
       </div>
       <div className="mt-3 flex-col flex-grow h-full flex justify-between">
         <div className="w-full">
-          <SidebarLink to="/admin" Icon={LuHouse} text="Dashboard" />
-          <SidebarLink to="/admin/users" Icon={LuUsers} text="Patients" />
-          <SidebarLink Icon={LuGitGraph} text="Analytics" />
-          <SidebarLink Icon={LuClipboard} text="Forms" />
+          {user.role === "doctor" ? (
+            <>
+              <SidebarLink to="/doctor" Icon={LuHouse} text="Dashboard" />
+              <SidebarLink to="/doctor/users" Icon={LuUsers} text="Patients" />
+              <SidebarLink
+                to="/doctor/sessions"
+                Icon={LuTimer}
+                text="Sessions"
+              />
+            </>
+          ) : (
+            <>
+              <SidebarLink to="/admin" Icon={LuHouse} text="Dashboard" />
+              <SidebarLink to="/admin/users" Icon={LuUsers} text="Patients" />
+            </>
+          )}
+
+          {user.role !== "doctor" && (
+            <>
+              <SidebarLink Icon={LuGitGraph} text="Analytics" />
+              <SidebarLink Icon={LuClipboard} text="Forms" />
+            </>
+          )}
         </div>
         <div className="w-full">
-          <Link to="/" className="flex items-center justify-center p-4">
-            Go back to Client
-          </Link>
+          {user.role !== "doctor" && (
+            <Link to="/" className="flex items-center justify-center p-4">
+              Go back to Client
+            </Link>
+          )}
+
           <Link
             to="/admin/users"
             className="flex items-center justify-center p-4"
