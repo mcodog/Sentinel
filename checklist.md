@@ -1,3 +1,5 @@
+### Project Completion: 6.5%
+
 1. ### Project Setup & Dev Environment
 
 [] Initialize Git repo, branches for frontend, backend, blockchain
