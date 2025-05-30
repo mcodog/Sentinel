@@ -213,7 +213,7 @@ const Call = () => {
   return (
     <div className="flex w-full h-screen justify-center items-center">
       <div className="w-7xl flex flex-col justify-center items-center">
-        <div className="mb-5 text-xl font-bold">Continuous Chat</div>
+        <div className="mb-5 text-xl font-bold">Chat Simulator</div>
         <div className="mb-4 flex space-x-4 text-sm">
           <span
             className={`px-2 py-1 rounded ${

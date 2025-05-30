@@ -1,3 +1,14 @@
+import { InferenceClient } from "@huggingface/inference";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+const client = new InferenceClient(process.env.HUGGING_FACE_API_TOKEN);
+
 export const generateResponse = async (req, res) => {
   try {
     const { input } = req.body;
@@ -5,22 +16,19 @@ export const generateResponse = async (req, res) => {
       return res.status(400).json({ error: "Invalid input" });
     }
 
-    const responses = [
-      "That's interesting! Tell me more.",
-      "I'm not sure I understand. Could you rephrase that?",
-      "Absolutely! Let's dive into that.",
-      "Hmm... let me think about it.",
-      "Great question! Here's what I think.",
-      "Thanks for sharing that!",
-      "Let's explore that further together.",
-      "That's a fascinating point of view.",
-      "You're making me think!",
-      "Could you give me an example?",
-    ];
+    const chatCompletion = await client.chatCompletion({
+      provider: "fireworks-ai",
+      model: "meta-llama/Llama-3.1-8B-Instruct",
+      messages: [
+        {
+          role: "user",
+          content: input,
+        },
+      ],
+    });
 
-    const response = responses[Math.floor(Math.random() * responses.length)];
-
-    res.json({ response });
+    const response = chatCompletion.choices[0].message;
+    res.json({ response: response.content });
   } catch (error) {
     console.error("Error generating response:", error);
     res.status(500).json({ error: "Failed to generate response" });
