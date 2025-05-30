@@ -1,12 +1,18 @@
 import { useEffect, useState, useRef } from "react";
 import axiosInstance from "../../utils/axios";
+import { motion, AnimatePresence } from "framer-motion";
 
-const Call = () => {
+const CallModal = ({
+  setCallActive,
+  isConversationActive,
+  setIsConversationActive,
+}) => {
   const [inputValue, setInputValue] = useState("");
   const [chatLog, setChatLog] = useState([]);
   const [currentAudio, setCurrentAudio] = useState(null);
   const [isListening, setIsListening] = useState(false);
-  const [isConversationActive, setIsConversationActive] = useState(false);
+  const [systemResponse, setSystemResponse] = useState("");
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [onLoad, setOnLoad] = useState(true);
 
@@ -109,6 +115,7 @@ const Call = () => {
 
   const playTTS = async (text) => {
     return new Promise(async (resolve, reject) => {
+      setSystemResponse(text);
       try {
         if (audioRef.current) {
           audioRef.current.pause();
@@ -215,12 +222,22 @@ const Call = () => {
       handleSendMessage();
     }
   };
-
   return (
-    <div className="flex w-full h-screen justify-center items-center">
-      <div className="w-7xl flex flex-col justify-center items-center">
-        <div className="mb-5 text-xl font-bold">Chat Simulator</div>
-        <div className="mb-4 flex space-x-4 text-sm">
+    <div className="relative bg-white p-4 rounded-lg shadow-lg w-6xl flex flex-col items-center justify-center h-96">
+      <AnimatePresence mode="wait">
+        <motion.h2
+          key={systemResponse}
+          initial={{ rotateX: 90, opacity: 0 }}
+          animate={{ rotateX: 0, opacity: 1 }}
+          exit={{ rotateX: -90, opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="text-xl font-bold origin-top"
+        >
+          {systemResponse}
+        </motion.h2>
+      </AnimatePresence>
+      <div className="absolute bottom-10">
+        <div className=" mb-4 flex space-x-4 text-sm">
           <span
             className={`px-2 py-1 rounded ${
               isConversationActive
@@ -250,70 +267,21 @@ const Call = () => {
           </span>
         </div>
 
-        <div className="w-1/2">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              placeholder="Type your message here..."
-              className="flex-grow h-10 border rounded px-2"
-              value={inputValue}
-              onChange={handleInputChange}
-              onKeyPress={handleKeyPress}
-              disabled={isProcessing}
-            />
-            <button
-              className="bg-blue-500 text-white px-4 rounded disabled:bg-gray-400"
-              onClick={() => handleSendMessage()}
-              disabled={isProcessing}
-            >
-              Send
-            </button>
-            <button
-              className={`px-4 rounded text-white ${
-                isConversationActive
-                  ? "bg-red-500 hover:bg-red-600"
-                  : "bg-green-500 hover:bg-green-600"
-              }`}
-              onClick={
-                isConversationActive ? stopConversation : startConversation
-              }
-            >
-              {isConversationActive ? "Stop Chat" : "Start Chat"}
-            </button>
-            <button
-              className="bg-red-600 text-white px-4 rounded hover:bg-red-700"
-              onClick={stopAudio}
-            >
-              Stop Audio
-            </button>
-          </div>
-
-          <div className="border w-full h-[300px] mt-5 rounded-2xl p-4 overflow-y-auto flex flex-col">
-            <div className="mt-auto flex flex-col">
-              {chatLog.map((message) => (
-                <div
-                  key={message.id}
-                  className={`w-full min-h-[50px] p-2 flex ${
-                    message.sender === "doctor"
-                      ? "justify-start"
-                      : "justify-end"
-                  }`}
-                >
-                  <div
-                    className={`${
-                      message.sender === "doctor" ? "bg-red-500" : "bg-gray-500"
-                    } inline-block p-2 px-6 rounded-full text-white max-w-xs`}
-                  >
-                    {message.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div>
+          <button
+            onClick={() => {
+              setCallActive(false);
+              stopConversation();
+              stopAudio();
+            }}
+            className=" px-4 py-2 bg-red-500 text-white rounded w-full hover:bg-red-600 transition-colors duration-300"
+          >
+            End Call
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default Call;
+export default CallModal;
