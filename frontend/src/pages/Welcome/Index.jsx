@@ -2,7 +2,7 @@ import React from "react";
 
 const Index = () => {
   return (
-    <div className="mt-26">
+    <div className="relative mt-26 h-full w-full border">
       <div>Index</div>
     </div>
   );
