@@ -11,12 +11,14 @@ import SideLayout from "./components/layouts/Side";
 // Pages for doctors
 import DoctorDashboard from "./pages/doctor/Index";
 import DoctorUsers from "./pages/doctor/Users";
+import Call from "./pages/Welcome/Call";
 
 const App = () => {
   return (
     <Routes>
       <Route path="/" element={<Main />}>
         <Route index element={<Welcome />} />
+        <Route path="/call" element={<Call />} />
       </Route>
 
       <Route path="/login" element={<Login />} />

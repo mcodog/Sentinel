@@ -17,7 +17,7 @@ const Header = () => {
     dispatch(clearUser());
   };
   return (
-    <div className="flex w-[1350px] justify-between">
+    <div className="flex w-[1350px] justify-between bg-white">
       <div className="text-xl font-bold uppercase">Sentinel</div>
       <div className="flex gap-4">
         <div>Home</div>
