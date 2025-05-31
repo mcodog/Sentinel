@@ -6,8 +6,6 @@ const PatientDashboard = () => {
   const [newMessage, setNewMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  
-  // Initialize with a default mood to simulate persistence
   const [showMoodCheck, setShowMoodCheck] = useState(false);
   const [selectedMood, setSelectedMood] = useState({
     emoji: '😊',
@@ -16,19 +14,19 @@ const PatientDashboard = () => {
     color: 'bg-green-100 border-green-300 hover:bg-green-200'
   });
 
-  // Mock user data (since Redux is not available)
+  // Mock user data
   const user = {
     user_metadata: {
-      full_name: 'John Doe'
+      full_name: 'rossy duhh'
     },
-    email: 'john.doe@example.com'
+    email: 'dfs.dddd@example.com'
   };
 
-  // Mock chat history data
+  // Mock chat history
   const chatHistory = [
-    { id: 1, name: 'sample lang', lastMessage: 'How are you feeling today?', time: '2 hours ago', unread: 2 },
-    { id: 2, name: 'AI Therapy Assistant', lastMessage: 'Would you like to continue our breathing exercise session?', time: '1 day ago', unread: 0 },
-    { id: 3, name: 'AI Wellness Coach', lastMessage: 'Remember to practice the mindfulness techniques we discussed', time: '3 days ago', unread: 1 },
+    { id: 1, name: 'AI Therapy Assistant', lastMessage: 'How are you feeling today?', time: '2 hours ago', unread: 2 },
+    { id: 2, name: 'AI Wellness Coach', lastMessage: 'Would you like to continue our breathing exercise session?', time: '1 day ago', unread: 0 },
+    { id: 3, name: 'Mental Health Support', lastMessage: 'Remember to practice the mindfulness techniques we discussed', time: '3 days ago', unread: 1 },
   ];
 
   // Mood options
@@ -43,12 +41,7 @@ const PatientDashboard = () => {
     { emoji: '✨', label: 'Great', value: 'great', color: 'bg-pink-100 border-pink-300 hover:bg-pink-200' },
   ];
 
-  const handleMoodSelection = (mood) => {
-    setSelectedMood(mood);
-    setShowMoodCheck(false);
-  };
-
-  // Mock message data for selected chat
+  // Mock messages for selected chat
   const mockMessages = [
     { id: 1, sender: 'ai', message: 'Hello! I\'m your AI mental health assistant. How are you feeling today?', time: '2:30 PM', name: 'AI Assistant' },
     { id: 2, sender: 'user', message: 'Hi, I\'ve been feeling a bit anxious lately.', time: '2:32 PM' },
@@ -82,12 +75,6 @@ const PatientDashboard = () => {
     </svg>
   );
 
-  const Calendar = ({ className = "w-5 h-5" }) => (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-  );
-
   const Bot = ({ className = "w-5 h-5" }) => (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -105,6 +92,11 @@ const PatientDashboard = () => {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
     </svg>
   );
+
+  const handleMoodSelection = (mood) => {
+    setSelectedMood(mood);
+    setShowMoodCheck(false);
+  };
 
   const handleSendMessage = () => {
     if (newMessage.trim() && selectedChat) {
@@ -139,10 +131,7 @@ const PatientDashboard = () => {
   };
 
   const confirmLogout = () => {
-    // Close the modal first
     setShowLogoutModal(false);
-    
-    // Redirect to root path
     window.location.href = '/';
   };
 
@@ -160,12 +149,9 @@ const PatientDashboard = () => {
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                 <Heart className="w-6 h-6 text-white" />
               </div>
-              <span className="text-2xl font-bold text-gray-900">
-                Sentinel
-              </span>
+              <span className="text-2xl font-bold text-gray-900">Sentinel</span>
             </div>
             
-            {/* User Profile & Logout */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg">
                 <User className="w-5 h-5 text-gray-600" />
@@ -186,7 +172,6 @@ const PatientDashboard = () => {
       </nav>
 
       <div className="flex h-[calc(100vh-80px)]">
-        {/* Main Content */}
         <div className="flex-1 flex flex-col">
           {/* Tab Navigation */}
           <div className="bg-white border-b">
@@ -279,7 +264,7 @@ const PatientDashboard = () => {
                 </div>
                 
                 {/* Quick Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                   <div className="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
                     <div className="flex items-center space-x-4 mb-4">
                       <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -312,21 +297,6 @@ const PatientDashboard = () => {
                       Start Text Chat
                     </button>
                   </div>
-
-                  <div className="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
-                    <div className="flex items-center space-x-4 mb-4">
-                      <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <Calendar className="w-6 h-6 text-orange-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">Schedule</h3>
-                        <p className="text-sm text-gray-500">Book appointment</p>
-                      </div>
-                    </div>
-                    <button className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 px-4 rounded-lg transition-colors font-medium">
-                      Schedule
-                    </button>
-                  </div>
                 </div>
 
                 {/* Recent Activity */}
@@ -344,10 +314,10 @@ const PatientDashboard = () => {
                     </div>
                     <div className="flex items-center space-x-4 p-4 bg-green-50 rounded-lg">
                       <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <Calendar className="w-5 h-5 text-green-600" />
+                        <Phone className="w-5 h-5 text-green-600" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">Completed session with AI Wellness Coach</p>
+                        <p className="font-medium text-gray-900">Completed voice session with AI Wellness Coach</p>
                         <p className="text-sm text-gray-500">Yesterday at 2:00 PM</p>
                       </div>
                     </div>
