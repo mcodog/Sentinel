@@ -1,5 +1,6 @@
 import vader from 'vader-sentiment';
 import translate from 'translate';
+import { normalizeText } from 'normalize-text';
 
 // Configure translate engine (default is google)
 translate.engine = 'google';
@@ -127,7 +128,9 @@ class SentimentService {
             };
 
             if (options.enableTranslation !== false) {
-                const translatedText = await this.translateToEnglish(originalText);
+                let translatedText = await this.translateToEnglish(originalText);
+                translatedText = normalizeText(translatedText)
+
                 if (translatedText !== originalText) {
                     translationInfo = {
                         wasTranslated: true,

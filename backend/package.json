@@ -4,7 +4,11 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test tests/chatbot.service.test.js",
+    "test:manual": "node tests/manual-test-runner.js",
+    "test:chatbot": "node tests/manual-test-runner.js",
+    "test:integration": "node tests/chatbot.integration.test.js",
+    "test:all": "npm run test && npm run test:manual && npm run test:integration",
     "start": "nodemon server.js"
   },
   "keywords": [],
@@ -21,6 +25,7 @@
     "express": "^5.1.0",
     "morgan": "^1.10.0",
     "nodemon": "^3.1.10",
+    "normalize-text": "^2.6.0",
     "translate": "^3.0.1",
     "vader-sentiment": "^1.1.3"
   }
