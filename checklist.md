@@ -1,16 +1,18 @@
+### Project Completion: 34.5%
+
 1. ### Project Setup & Dev Environment
 
-[] Initialize Git repo, branches for frontend, backend, blockchain
+[x] Initialize Git repo, branches for frontend, backend, blockchain
 [x] Setup Supabase project (auth, database for off-chain storage)
 [] Setup ICP/DFINITY dev environment with Motoko tooling
 [x] Create React app skeleton with shared styling (color palette/fonts)
 
 2. Supabase Backend & API
 
-[] Define and create tables: users, sessions, transcripts metadata (off-chain storage)
+[x] Define and create tables: users, sessions, transcripts metadata (off-chain storage)
 [] Implement API endpoints for user management, session creation
 [] Implement endpoints for storing and fetching encrypted transcript data
-[] Integrate authentication with Supabase (patients & doctors)
+[x] Integrate authentication with Supabase (patients & doctors)
 
 3. ICP Motoko Smart Contracts: Blockchain Core
 
@@ -24,26 +26,26 @@
 4. Frontend: Patient Web App (Login + Session Start)
 
 [x] Create login/register UI linked to Supabase auth
-[] Implement session start UI (button to initiate chat/call)
+[x] Implement session start UI (button to initiate chat/call)
 [] Hook session start to backend & blockchain (store session start event on-chain)
 
 5. Frontend: Doctor Dashboard Base
 
-[] Build dashboard layout and routing
-[] Show patient list (from Supabase) with basic info
+[x] Build dashboard layout and routing
+[x] Show patient list (from Supabase) with basic info
 [] Placeholder for transcripts & call logs UI
 
 6. LLM Integration (Chat Assistant)
 
-[] Choose and set up LLM (Huggingface or OpenAI API)
-[] Build backend or frontend service to handle conversational prompts
-[] Connect chat input to LLM and display AI responses
+[x] Choose and set up LLM (Huggingface or OpenAI API)
+[x] Build backend or frontend service to handle conversational prompts
+[x] Connect chat input to LLM and display AI responses
 
 7. STT & TTS Integration (ElevenLabs or Whisper)
 
-[] Implement speech-to-text transcription service and frontend audio capture
-[] Implement text-to-speech playback of AI responses
-[] Integrate audio + chat UI for seamless voice interaction
+[x] Implement speech-to-text transcription service and frontend audio capture
+[x] Implement text-to-speech playback of AI responses
+[x] Integrate audio + chat UI for seamless voice interaction
 
 8. Real-time Transcript & Sentiment Analysis
 

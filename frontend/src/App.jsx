@@ -1,4 +1,3 @@
-import React from "react";
 import "./App.css";
 import { Routes, Route } from "react-router-dom";
 import Main from "./components/layouts/Main";
@@ -15,11 +14,14 @@ import DoctorUsers from "./pages/doctor/Users";
 import DoctorSessions from "./pages/doctor/Sessions";
 import DoctorSessionsOfUser from "./pages/doctor/SingleSession";
 
+import Call from "./pages/Welcome/Call";
+
 const App = () => {
   return (
     <Routes>
       <Route path="/" element={<Main />}>
         <Route index element={<Welcome />} />
+        <Route path="/call" element={<Call />} />
       </Route>
 
       <Route path="session" element={<SessionLayout />}>
