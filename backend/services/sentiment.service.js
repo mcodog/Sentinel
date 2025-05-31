@@ -80,15 +80,79 @@ class SentimentService {
     }
 
     /**
+     * Normalize and preprocess text for better tokenization
+     * @param {string} text - Text to normalize
+     * @returns {string} - Normalized text
+     */
+    normalizeTextForTokenization(text) {
+        // Handle common contractions by expanding them
+        const contractions = {
+            "don't": "do not",
+            "doesn't": "does not",
+            "didn't": "did not",
+            "won't": "will not",
+            "wouldn't": "would not",
+            "shouldn't": "should not",
+            "couldn't": "could not",
+            "can't": "can not",
+            "isn't": "is not",
+            "aren't": "are not",
+            "wasn't": "was not",
+            "weren't": "were not",
+            "haven't": "have not",
+            "hasn't": "has not",
+            "hadn't": "had not",
+            "I'm": "I am",
+            "you're": "you are",
+            "he's": "he is",
+            "she's": "she is",
+            "it's": "it is",
+            "we're": "we are",
+            "they're": "they are",
+            "I've": "I have",
+            "you've": "you have",
+            "we've": "we have",
+            "they've": "they have",
+            "I'll": "I will",
+            "you'll": "you will",
+            "he'll": "he will",
+            "she'll": "she will",
+            "it'll": "it will",
+            "we'll": "we will",
+            "they'll": "they will",
+            "I'd": "I would",
+            "you'd": "you would",
+            "he'd": "he would",
+            "she'd": "she would",
+            "we'd": "we would",
+            "they'd": "they would"
+        };
+
+        let normalizedText = text.toLowerCase();
+
+        // Replace contractions with expanded forms
+        Object.keys(contractions).forEach(contraction => {
+            const regex = new RegExp('\\b' + contraction.replace(/'/g, "\\'") + '\\b', 'gi');
+            normalizedText = normalizedText.replace(regex, contractions[contraction]);
+        });
+
+        return normalizedText;
+    }
+
+    /**
      * Analyze sentiment of individual words
      * @param {string} text - Text to analyze
      * @returns {Array} - Array of word sentiment objects
      */
     analyzeWordSentiments(text) {
-        const words = text.toLowerCase()
-            .replace(/[^\w\s]/g, ' ') // Remove punctuation
+        // First normalize contractions
+        const normalizedText = this.normalizeTextForTokenization(text);
+
+        // Then clean and tokenize
+        const words = normalizedText
+            .replace(/[^\w\s]/g, ' ') // Remove punctuation after normalization
             .split(/\s+/)
-            .filter(word => word.length > 0);
+            .filter(word => word.length > 1); // Filter out single characters
 
         return words.map(word => {
             const wordAnalysis = vader.SentimentIntensityAnalyzer.polarity_scores(word);
