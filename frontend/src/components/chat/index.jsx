@@ -1,18 +1,52 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Trash2, Loader2 } from 'lucide-react';
 import { FaComments } from 'react-icons/fa6';
 import MessageBubble from './message-bubble';
 import axiosInstance from '../../utils/axios';
+import { selectUserId, selectIsLoggedIn } from '../../features/user/userSelector';
 
 const ChatComponent = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [userId] = useState(`user_${Date.now()}`); // Generate unique user ID
+  const [sessionId, setSessionId] = useState(null);
+  const [anonymousChatEnabled, setAnonymousChatEnabled] = useState(false);
+  const [isAnonymousMode, setIsAnonymousMode] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Get user data from Redux store
+  const userId = useSelector(selectUserId);
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+
+  // Check if anonymous chat is enabled when component mounts
+  useEffect(() => {
+    const checkAnonymousFeature = async () => {
+      try {
+        const response = await axiosInstance.get('/chatbot/anonymous-status');
+        if (response.data.success) {
+          setAnonymousChatEnabled(response.data.anonymousChatEnabled);
+        }
+      } catch (error) {
+        console.warn('Failed to check anonymous chat status:', error);
+        setAnonymousChatEnabled(false);
+      }
+    };
+
+    checkAnonymousFeature();
+  }, []);
+
+  // Auto-enable anonymous mode if user is not logged in and feature is enabled
+  useEffect(() => {
+    if (!isLoggedIn && anonymousChatEnabled) {
+      setIsAnonymousMode(true);
+    } else if (isLoggedIn) {
+      setIsAnonymousMode(false);
+    }
+  }, [isLoggedIn, anonymousChatEnabled]);
 
   // Scroll to bottom when new messages are added
   const scrollToBottom = () => {
@@ -33,11 +67,24 @@ const ChatComponent = () => {
   // Load conversation history when modal opens
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      loadConversationHistory();
+      if (isLoggedIn && userId) {
+        loadConversationHistory();
+      } else if (isAnonymousMode && sessionId) {
+        loadAnonymousConversationHistory();
+      } else if (isAnonymousMode && !sessionId) {
+        // Generate a session ID for anonymous users
+        const newSessionId = `anon_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+        setSessionId(newSessionId);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, isLoggedIn, userId, isAnonymousMode, sessionId]);
 
   const loadConversationHistory = async () => {
+    if (!isLoggedIn || !userId) {
+      console.warn('User not logged in, skipping conversation history load');
+      return;
+    }
+
     try {
       const response = await axiosInstance.get(`/chatbot/conversation/${userId}`);
       if (response.data.success && response.data.conversation) {
@@ -48,9 +95,36 @@ const ChatComponent = () => {
     }
   };
 
+  const loadAnonymousConversationHistory = async () => {
+    if (!sessionId) {
+      console.warn('No session ID for anonymous user');
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.get(`/chatbot/conversation/anonymous?sessionId=${sessionId}&isAnonymous=true`);
+      if (response.data.success && response.data.conversation) {
+        setMessages(response.data.conversation);
+      }
+    } catch (error) {
+      console.error('Error loading anonymous conversation history:', error);
+    }
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || isLoading) return;
+
+    // Check if user can send messages (either logged in or anonymous mode enabled)
+    if (!isLoggedIn && !isAnonymousMode) {
+      const errorMessage = {
+        message: "Please log in to use the chat feature.",
+        isUser: false,
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
 
     const userMessage = {
       message: newMessage.trim(),
@@ -63,18 +137,39 @@ const ChatComponent = () => {
     setIsLoading(true);
 
     try {
-      const response = await axiosInstance.post('/chatbot/send', {
-        message: userMessage.message,
-        userId: userId
-      });
+      let response;
+      
+      if (isAnonymousMode) {
+        // Anonymous user request
+        response = await axiosInstance.post('/chatbot/send', {
+          message: userMessage.message,
+          sessionId: sessionId,
+          isAnonymous: true
+        });
+      } else {
+        // Authenticated user request
+        response = await axiosInstance.post('/chatbot/send', {
+          message: userMessage.message,
+          userId: userId,
+          sessionId: sessionId,
+          isAnonymous: false
+        });
+      }
 
       if (response.data.success) {
         const botMessage = {
           message: response.data.response,
           isUser: false,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          sentiment: response.data.sentiment,
+          isCrisisResponse: response.data.isCrisisResponse
         };
         setMessages(prev => [...prev, botMessage]);
+
+        // Store session ID for conversation continuity
+        if (response.data.sessionId) {
+          setSessionId(response.data.sessionId);
+        }
       } else {
         throw new Error(response.data.error || 'Failed to get response');
       }
@@ -92,11 +187,30 @@ const ChatComponent = () => {
   };
 
   const clearMessages = async () => {
-    try {
-      await axiosInstance.delete(`/chatbot/clear/${userId}`);
-      setMessages([]);
-    } catch (error) {
-      console.error('Error clearing messages:', error);
+    if (isAnonymousMode) {
+      // Clear anonymous chat
+      try {
+        if (sessionId) {
+          await axiosInstance.delete(`/chatbot/clear/anonymous?sessionId=${sessionId}&isAnonymous=true`);
+        }
+        setMessages([]);
+        setSessionId(null);
+      } catch (error) {
+        console.error('Error clearing anonymous messages:', error);
+        setMessages([]);
+      }
+    } else if (isLoggedIn && userId) {
+      // Clear authenticated user chat
+      try {
+        await axiosInstance.delete(`/chatbot/clear/${userId}${sessionId ? `?sessionId=${sessionId}` : ''}`);
+        setMessages([]);
+        setSessionId(null);
+      } catch (error) {
+        console.error('Error clearing messages:', error);
+        setMessages([]);
+      }
+    } else {
+      // Fallback: just clear local messages
       setMessages([]);
     }
   };
@@ -147,7 +261,9 @@ const ChatComponent = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold">Sentinel AI</h3>
-                    <p className="text-xs text-slate-200">Mental Health Support</p>
+                    <p className="text-xs text-slate-200">
+                      {isAnonymousMode ? 'Anonymous Mode' : 'Mental Health Support'}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -155,6 +271,7 @@ const ChatComponent = () => {
                     onClick={clearMessages}
                     className="p-1 hover:bg-slate-600 rounded transition-colors"
                     title="Clear conversation"
+                    disabled={!isAnonymousMode && !isLoggedIn}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -169,23 +286,49 @@ const ChatComponent = () => {
 
               {/* Messages Area */}
               <div className="flex-1 p-4 overflow-y-auto bg-gray-50 chat-scroll">
-                {messages.length === 0 ? (
+                {!isLoggedIn && !isAnonymousMode ? (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                    <MessageCircle size={48} className="mb-4 text-slate-400" />
+                    <h4 className="font-medium mb-2">Login Required</h4>
+                    <p className="text-sm text-center">
+                      Please log in to access your personalized mental health support chat.
+                    </p>
+                  </div>
+                ) : messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-gray-500">
                     <MessageCircle size={48} className="mb-4 text-slate-400" />
                     <h4 className="font-medium mb-2">Welcome to Sentinel AI</h4>
                     <p className="text-sm text-center">
-                      I'm here to provide mental health support and a safe space to talk.
-                      How can I help you today?
+                      {isAnonymousMode ? 
+                        "You're in anonymous mode. Your conversation won't be saved to your account. I'm here to provide mental health support and a safe space to talk. How can I help you today?" :
+                        "I'm here to provide mental health support and a safe space to talk. How can I help you today?"
+                      }
                     </p>
+                    {isAnonymousMode && (
+                      <div className="mt-3 p-2 bg-orange-100 rounded-lg border border-orange-200">
+                        <p className="text-xs text-orange-700 text-center">
+                          💡 Anonymous mode: Messages are stored temporarily and will be cleared when you close the browser.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div>
+                    {isAnonymousMode && messages.length > 0 && (
+                      <div className="mb-4 p-2 bg-orange-100 rounded-lg border border-orange-200">
+                        <p className="text-xs text-orange-700 text-center">
+                          🔒 Anonymous session - Messages won't be saved to your account
+                        </p>
+                      </div>
+                    )}
                     {messages.map((msg, index) => (
                       <MessageBubble
                         key={index}
                         message={msg.message}
                         isUser={msg.isUser}
                         timestamp={msg.timestamp}
+                        sentiment={msg.sentiment}
+                        isCrisisResponse={msg.isCrisisResponse}
                       />
                     ))}
                     {isLoading && (
@@ -210,13 +353,17 @@ const ChatComponent = () => {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Type your message..."
+                    placeholder={
+                      isAnonymousMode ? "Type your message... (Anonymous mode)" :
+                      isLoggedIn ? "Type your message..." : 
+                      "Please log in to chat"
+                    }
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-                    disabled={isLoading}
+                    disabled={isLoading || (!isLoggedIn && !isAnonymousMode)}
                   />
                   <button
                     type="submit"
-                    disabled={!newMessage.trim() || isLoading}
+                    disabled={!newMessage.trim() || isLoading || (!isLoggedIn && !isAnonymousMode)}
                     className="w-10 h-10 bg-slate-700 text-white rounded-full flex items-center justify-center hover:bg-slate-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   >
                     <Send size={16} />

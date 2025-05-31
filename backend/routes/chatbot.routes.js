@@ -15,4 +15,7 @@ router.delete('/clear/:userId', ChatbotController.clearChat);
 // GET /api/chatbot/health - Health check for the chatbot service
 router.get('/health', ChatbotController.healthCheck);
 
+// GET /api/chatbot/anonymous-status - Check if anonymous chat is enabled
+router.get('/anonymous-status', ChatbotController.checkAnonymousFeature);
+
 export default router;
