@@ -2,6 +2,8 @@ import { InferenceClient } from "@huggingface/inference";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import supabase, { supabaseAdmin } from "../services/supabase.service.js";
+import dayjs from "dayjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,11 +11,116 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 const client = new InferenceClient(process.env.HUGGING_FACE_API_TOKEN);
 
+export const retrieveConversations = async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("sessions")
+      .select(
+        `
+        *,
+        message(*)
+      `
+      )
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error retrieving conversations:", error);
+      return res
+        .status(500)
+        .json({ error: "Failed to retrieve conversations" });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ message: "No conversations found" });
+    }
+
+    // Transform the data to match mockChatSessions format
+    const formattedConversations = data.map((session) => {
+      const messages = session.message || [];
+
+      return {
+        id: session.id,
+        date: dayjs(session.created_at).format("ddd, MMM D"),
+        description: null,
+        messages: messages.length,
+        status: null, // Default for now – can be dynamic if you add sentiment analysis
+        conversation: messages.map((msg) => ({
+          sender: msg.from_user ? "user" : "therapist",
+          message: msg.message_content,
+          time: dayjs(msg.created_at).format("h:mm A"),
+        })),
+      };
+    });
+
+    res.json({ conversations: formattedConversations });
+  } catch (error) {
+    console.error("Error in retrieveConversations:", error);
+    res.status(500).json({ error: "Failed to retrieve conversations" });
+  }
+};
+
+export const initializeSession = async (req, res) => {
+  const { type, user_id } = req.body;
+  if (!type || !user_id) {
+    return res.status(400).json({ error: "Type and user_id are required" });
+  }
+  const sessionData = {
+    type,
+    user_id,
+  };
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("sessions")
+      .upsert(sessionData)
+      .select();
+    res.json({ message: "Session initialized successfully", data });
+  } catch (error) {
+    console.error("Error initializing session:", error);
+    res.status(500).json({ error: "Failed to initialize session" });
+  }
+};
+
 export const generateResponse = async (req, res) => {
   try {
-    const { input } = req.body;
+    const { input, session_id } = req.body;
     if (!input || typeof input !== "string") {
       return res.status(400).json({ error: "Invalid input" });
+    }
+
+    const isTesting = true;
+
+    saveToDatabase(session_id, input, true);
+
+    if (isTesting) {
+      const testResponses = [
+        "Salamat sa inyong tanong! Magpahinga muna kayo at uminom ng maraming tubig.",
+        "Nakakaintindi ko ang inyong problema. Makipag-ugnayan sa doktor para sa tamang payo.",
+        "Mabuti namang nagtanong kayo! Pangmatagalang kalusugan ay mahalaga sa ating lahat.",
+        "Ingat palagi sa inyong kalusugan! Regular na check-up ay importante.",
+        "Maraming salamat sa pagtitiwala! Huwag mag-atubiling magtanong ulit.",
+        "Importante ang inyong kalusugan! Sundin ang mga payo ng inyong doktor.",
+        "Magandang tanong yan! Healthy lifestyle ang susi sa magandang kalusugan.",
+      ];
+
+      const randomResponse =
+        testResponses[Math.floor(Math.random() * testResponses.length)];
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.random() * 1000 + 500)
+      );
+
+      saveToDatabase(session_id, randomResponse, false);
+
+      return res.json({
+        response: randomResponse,
+        testing: true,
+      });
     }
 
     const chatCompletion = await client.chatCompletion({
@@ -33,9 +140,48 @@ export const generateResponse = async (req, res) => {
     });
 
     const response = chatCompletion.choices[0].message;
+
+    saveToDatabase(session_id, response.content, false);
+
     res.json({ response: response.content });
   } catch (error) {
     console.error("Error generating response:", error);
     res.status(500).json({ error: "Failed to generate response" });
+  }
+};
+
+const saveToDatabase = async (session_id, input, from_user) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("message")
+      .insert({ session_id, message_content: input, from_user });
+
+    if (error) {
+      console.error("Error saving conversation:", error);
+      throw new Error("Failed to save conversation");
+    }
+  } catch (error) {
+    console.error("Error in saveToDatabase:", error);
+    throw error;
+  }
+};
+
+const retrieveMessagesofSession = async (session_id) => {
+  console.log("Retrieving messages for session:", session_id);
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("message")
+      .select("*")
+      .eq("session_id", session_id)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error retrieving messages:", error);
+      throw new Error("Failed to retrieve messages");
+    }
+    return data;
+  } catch (error) {
+    console.error("Error in retrieveMessagesofSession:", error);
+    throw error;
   }
 };

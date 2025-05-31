@@ -10,87 +10,31 @@ import { IoIosCall } from "react-icons/io";
 import { IoTimeOutline } from "react-icons/io5";
 
 export default function SingleSession() {
+  const [chatSessions, setChatSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState(null);
-  const [activeTab, setActiveTab] = useState("chat");
+  const [activeTab, setActiveTab] = useState("call");
   const [selectedChat, setSelectedChat] = useState(null);
   const user = useSelector(selectUser);
-
-  // Mock data to match the design
-  const mockChatSessions = [
-    {
-      id: 1,
-      date: "Fri, May 24",
-      description:
-        "Discussion about morning routine and anxiety management techniques.",
-      messages: 6,
-      status: "Moderate",
-      conversation: [
-        {
-          sender: "user",
-          message:
-            "Good morning! I've been trying to stick to my morning routine but finding it difficult to stay motivated.",
-          time: "9:00 AM",
-        },
-        {
-          sender: "therapist",
-          message:
-            "Good morning! It's great that you're working on establishing a routine. What specific parts are you finding challenging?",
-          time: "9:02 AM",
-        },
-        {
-          sender: "user",
-          message:
-            "Mainly the meditation part. My mind keeps racing and I can't seem to focus.",
-          time: "9:05 AM",
-        },
-        {
-          sender: "therapist",
-          message:
-            "That's completely normal, especially when you're starting out. Racing thoughts are common. Have you tried starting with just 2-3 minutes instead of longer sessions?",
-          time: "9:07 AM",
-        },
-        {
-          sender: "user",
-          message:
-            "No, I was trying to do 15 minutes right away. Maybe I should start smaller.",
-          time: "9:10 AM",
-        },
-        {
-          sender: "therapist",
-          message:
-            "Exactly! Starting with shorter sessions can help build the habit without feeling overwhelming. Would you like me to share some beginner-friendly techniques?",
-          time: "9:12 AM",
-        },
-      ],
-    },
-    {
-      id: 2,
-      date: "Wed, May 22",
-      description:
-        "Patient shared concerns about upcoming job interview and requested support strategies.",
-      messages: 6,
-      status: "Moderate",
-    },
-    {
-      id: 3,
-      date: "Sun, May 19",
-      description:
-        "Positive update on progress with therapy exercises and mood improvements.",
-      messages: 6,
-      status: "Positive",
-    },
-  ];
 
   const fetchSessions = async () => {
     try {
       setIsLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        setSession(mockChatSessions);
-        setSelectedChat(mockChatSessions[0]);
-        setIsLoading(false);
-      }, 1000);
+      const res = await axiosInstance.get(
+        `/conversation/${user?.id || "default_user_id"}`
+      );
+      console.log("Fetched sessions:", res.data);
+      if (res.status === 200) {
+        const { conversations } = res.data;
+        setChatSessions(conversations || []);
+        if (conversations && conversations.length > 0) {
+          setSession(conversations[0]);
+          setSelectedChat(conversations[0]);
+          setIsLoading(false);
+        } else {
+          setSession(null);
+        }
+      }
     } catch (err) {
       console.error("Error fetching session:", err);
       setSession(null);
@@ -131,7 +75,7 @@ export default function SingleSession() {
   return (
     <div className="p-4 mx-10">
       <div className="flex items-center gap-5">
-        <Link to="/dashboard" className="cursor-pointer hover:text-blue-600">
+        <Link to="/doctor/users" className="cursor-pointer hover:text-blue-600">
           <LuArrowLeft size={20} />
         </Link>
         {isLoading ? (
@@ -206,7 +150,7 @@ export default function SingleSession() {
                 </p>
               </div>
               <div className="overflow-y-auto h-full">
-                {mockChatSessions.map((chatSession) => (
+                {chatSessions.map((chatSession) => (
                   <div
                     key={chatSession.id}
                     className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
@@ -225,11 +169,13 @@ export default function SingleSession() {
                           chatSession.status
                         )}`}
                       >
-                        {chatSession.status}
+                        {chatSession.status ? chatSession.status : "Unknown"}
                       </span>
                     </div>
                     <p className="text-xs text-gray-600 mb-2">
-                      {chatSession.description}
+                      {chatSession.description
+                        ? chatSession.description
+                        : "No description available"}
                     </p>
                     <div className="flex items-center text-xs text-gray-500">
                       <CiChat2 size={14} className="mr-1" />

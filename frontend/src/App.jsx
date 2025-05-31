@@ -37,7 +37,7 @@ const App = () => {
         <Route index element={<DoctorDashboard />}></Route>
         <Route path="users" element={<DoctorUsers />} />
         <Route path="sessions" element={<DoctorSessions />} />
-        <Route path="user/:userId" element={<DoctorSessionsOfUser />} />
+        <Route path="users/:userId" element={<DoctorSessionsOfUser />} />
       </Route>
     </Routes>
   );

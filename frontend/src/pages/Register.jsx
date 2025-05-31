@@ -1,18 +1,28 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import TextInput from "@/components/inputs/TextInput";
 import PrimeButton from "@/components/buttons/PrimeButton";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "@/utils/axios";
 import Swal from "sweetalert2";
 
 const Register = () => {
+  // const { doctorId } = useParams();
   const [formData, setFormData] = useState({
+    doctorId: doctorId,
     email: "",
     password: "",
     firstname: "",
     lastname: "",
   });
   const navigate = useNavigate();
+
+  // useEffect(() => {
+  //   checkIfDoctorExists();
+  // }, [doctorId]);
+
+  // const checkIfDoctorExists = () => {
+  //   alert(doctorId);
+  // };
 
   const handleSubmit = async () => {
     try {

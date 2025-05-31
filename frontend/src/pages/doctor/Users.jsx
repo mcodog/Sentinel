@@ -194,7 +194,7 @@ export default function Users() {
                 </div>
 
                 <div>
-                  <Link to={`/doctor/user/${user.auth_id}`}>
+                  <Link to={`/doctor/users/${user.auth_id}`}>
                     <p className="text-cyan-400">View Sessions</p>
                   </Link>
                 </div>
