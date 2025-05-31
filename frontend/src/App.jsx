@@ -18,28 +18,30 @@ import Call from "./pages/Welcome/Call";
 
 const App = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Main />}>
-        <Route index element={<Welcome />} />
-        <Route path="/call" element={<Call />} />
-      </Route>
+    <>
+      <Routes>
+        <Route path="/" element={<Main />}>
+          <Route index element={<Welcome />} />
+          <Route path="/call" element={<Call />} />
+        </Route>
 
-      <Route path="session" element={<SessionLayout />}>
-        <Route index element={<Session />} />
-      </Route>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/session" element={<Session />} />
-      <Route path="/admin" element={<SideLayout />}>
-        <Route index element={<Dashboard />} />
-      </Route>
-      <Route path="/doctor" element={<SideLayout />}>
-        <Route index element={<DoctorDashboard />}></Route>
-        <Route path="users" element={<DoctorUsers />} />
-        <Route path="sessions" element={<DoctorSessions />} />
-        <Route path="users/:userId" element={<DoctorSessionsOfUser />} />
-      </Route>
-    </Routes>
+        <Route path="session" element={<SessionLayout />}>
+          <Route index element={<Session />} />
+        </Route>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/session" element={<Session />} />
+        <Route path="/admin" element={<SideLayout />}>
+          <Route index element={<Dashboard />} />
+        </Route>
+        <Route path="/doctor" element={<SideLayout />}>
+          <Route index element={<DoctorDashboard />}></Route>
+          <Route path="users" element={<DoctorUsers />} />
+          <Route path="sessions" element={<DoctorSessions />} />
+          <Route path="users/:userId" element={<DoctorSessionsOfUser />} />
+        </Route>
+      </Routes>
+    </>
   );
 };
 
