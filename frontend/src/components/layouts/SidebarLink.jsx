@@ -3,11 +3,10 @@ import { Link, useLocation } from "react-router-dom";
 const SidebarLink = ({ Icon, text, to }) => {
   const location = useLocation();
   let isActive = false;
-  if (location.pathname === "/admin") {
+  if (location.pathname === "/doctor") {
     isActive = location.pathname === to;
   } else {
-    console.log(location.pathname);
-    isActive = location.pathname.startsWith(to) && to != "/admin";
+    isActive = location.pathname.startsWith(to) && to != "/doctor";
   }
 
   return (

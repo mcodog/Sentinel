@@ -123,7 +123,7 @@ const CallModal = ({
         }
 
         const res = await fetch(
-          "https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb?output_format=mp3_44100_128",
+          "https://api.elevenlabs.io/v1/text-to-speech/nPczCjzI2devNBz1zQrb?output_format=mp3_44100_128",
           {
             method: "POST",
             headers: {
