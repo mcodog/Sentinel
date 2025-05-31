@@ -9,7 +9,8 @@
     "test:chatbot": "node tests/manual-test-runner.js",
     "test:integration": "node tests/chatbot.integration.test.js",
     "test:all": "npm run test && npm run test:manual && npm run test:integration",
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "dev": "nodemon server.js"
   },
   "keywords": [],
   "author": "",
