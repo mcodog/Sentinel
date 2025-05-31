@@ -48,8 +48,37 @@ const Register = () => {
     </svg>
   );
 
+  // Function to calculate age from date of birth
+  const calculateAge = (dob) => {
+    const today = new Date();
+    const birthDate = new Date(dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check age requirement before proceeding
+    if (formData.dob) {
+      const age = calculateAge(formData.dob);
+      if (age < 10) {
+        Swal.fire({
+          title: "Age Requirement Not Met",
+          text: "You must be at least 10 years old to create an account.",
+          icon: "warning",
+          confirmButtonText: "I Understand"
+        });
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {

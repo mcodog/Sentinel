@@ -51,46 +51,161 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setIsLoading(true);
-  
-  try {
-    const res = await axios.post("/auth/login", formData);
-    if (res.data.message === "Success") {
-      Swal.fire({
-        title: "Successfully Verified!",
-        text: "Redirecting you now...",
-        icon: "success",
-        showConfirmButton: false,
-        timer: 1500
-      });
-      
-      // Store the complete user data including metadata
-      const userData = {
-        ...res.data.parsedUser,
-        user_metadata: res.data.parsedUser.user_metadata || {
-          full_name: res.data.parsedUser.email.split('@')[0] // Fallback to email prefix if no name
-        }
-      };
-      
-      dispatch(setUser(userData));
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      const res = await axios.post("/auth/login", formData);
+      if (res.data.message === "Success") {
+        Swal.fire({
+          title: "Successfully Verified!",
+          text: "Redirecting you now...",
+          icon: "success",
+          showConfirmButton: false,
+          timer: 1500
+        });
+        
+        // Store the complete user data including metadata
+        const userData = {
+          ...res.data.parsedUser,
+          user_metadata: res.data.parsedUser.user_metadata || {
+            full_name: res.data.parsedUser.email.split('@')[0] // Fallback to email prefix if no name
+          }
+        };
+        
+        dispatch(setUser(userData));
 
-      if(res.data.parsedUser.role === "user") {
-        setTimeout(() => {
-          navigate("/patient");
-        }, 1000);
-      } else {
-        setTimeout(() => {
-          navigate("/doctor");
-        }, 1000);
+        if(res.data.parsedUser.role === "user") {
+          setTimeout(() => {
+            navigate("/patient");
+          }, 1000);
+        } else {
+          setTimeout(() => {
+            navigate("/doctor");
+          }, 1000);
+        }
       }
+    } catch (error) {
+      console.error("Login error:", error);
+      
+      // Check if the error is related to account not found
+      if (error.response) {
+        const errorMessage = error.response.data.message || error.response.data.error || error.response.data.code || "";
+        const statusCode = error.response.status;
+        
+        // Handle different types of authentication errors - including PostgREST errors
+        if (statusCode === 401 || statusCode === 404 || 
+            errorMessage.toLowerCase().includes("user not found") ||
+            errorMessage.toLowerCase().includes("account not found") ||
+            errorMessage.toLowerCase().includes("invalid credentials") ||
+            errorMessage.toLowerCase().includes("email not found") ||
+            errorMessage.includes("PGRST116") ||
+            errorMessage.toLowerCase().includes("jwt") ||
+            statusCode === 400 || // Bad request often means invalid login
+            (statusCode >= 400 && statusCode < 500)) { // Any 4xx error could be auth failure
+          
+          // Show alert asking if they want to register
+          Swal.fire({
+            title: "Login Failed",
+            html: `
+              <p>We couldn't sign you in with the email "<strong>${formData.email}</strong>".</p>
+              <p>This could mean:</p>
+              <ul style="text-align: left; margin: 15px 0;">
+                <li>• No account exists with this email</li>
+                <li>• The password is incorrect</li>
+                <li>• The account needs verification</li>
+              </ul>
+              <p>Would you like to <strong>create a new account</strong> with this email?</p>
+            `,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#3B82F6",
+            cancelButtonColor: "#6B7280",
+            confirmButtonText: "Yes, Create Account",
+            cancelButtonText: "Try Again",
+            width: "500px"
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // Navigate to register page with email pre-filled
+              navigate("/register", { 
+                state: { 
+                  email: formData.email,
+                  message: "Complete the registration form below to create your account." 
+                } 
+              });
+            }
+          });
+          
+        } else if (errorMessage.toLowerCase().includes("incorrect password") ||
+                   errorMessage.toLowerCase().includes("wrong password") ||
+                   errorMessage.toLowerCase().includes("invalid password")) {
+          
+          Swal.fire({
+            title: "Incorrect Password",
+            text: "The password you entered is incorrect. Please try again.",
+            icon: "error",
+            confirmButtonColor: "#3B82F6"
+          });
+          
+        } else if (errorMessage.toLowerCase().includes("email not verified") ||
+                   errorMessage.toLowerCase().includes("account not verified")) {
+          
+          Swal.fire({
+            title: "Email Not Verified",
+            text: "Please check your email and verify your account before logging in.",
+            icon: "warning",
+            confirmButtonColor: "#3B82F6"
+          });
+          
+        } else if (errorMessage.toLowerCase().includes("account disabled") ||
+                   errorMessage.toLowerCase().includes("account suspended")) {
+          
+          Swal.fire({
+            title: "Account Disabled",
+            text: "Your account has been disabled. Please contact support for assistance.",
+            icon: "error",
+            confirmButtonColor: "#3B82F6"
+          });
+          
+        } else if (errorMessage.startsWith("For security purposes")) {
+          
+          Swal.fire({
+            title: "Request Timeout",
+            text: errorMessage,
+            icon: "error",
+            confirmButtonColor: "#3B82F6"
+          });
+          
+        } else {
+          // Generic error handling
+          Swal.fire({
+            title: "Login Failed",
+            text: errorMessage || "An error occurred during login. Please try again.",
+            icon: "error",
+            confirmButtonColor: "#3B82F6"
+          });
+        }
+      } else if (error.request) {
+        // Network error
+        Swal.fire({
+          title: "Connection Error",
+          text: "Unable to connect to the server. Please check your internet connection and try again.",
+          icon: "error",
+          confirmButtonColor: "#3B82F6"
+        });
+      } else {
+        // General error
+        Swal.fire({
+          title: "Unexpected Error",
+          text: "An unexpected error occurred. Please try again.",
+          icon: "error",
+          confirmButtonColor: "#3B82F6"
+        });
+      }
+    } finally {
+      setIsLoading(false);
     }
-  } catch (e) {
-    // ... (keep existing error handling)
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const handleReturn = () => {
     navigate("/");
