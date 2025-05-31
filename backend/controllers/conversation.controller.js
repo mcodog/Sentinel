@@ -46,10 +46,11 @@ export const retrieveConversations = async (req, res) => {
 
       return {
         id: session.id,
+        type: session.type,
         date: dayjs(session.created_at).format("ddd, MMM D"),
         description: null,
         messages: messages.length,
-        status: null, // Default for now – can be dynamic if you add sentiment analysis
+        status: null,
         conversation: messages.map((msg) => ({
           sender: msg.from_user ? "user" : "therapist",
           message: msg.message_content,
@@ -79,6 +80,7 @@ export const initializeSession = async (req, res) => {
       .from("sessions")
       .upsert(sessionData)
       .select();
+    console.log(data);
     res.json({ message: "Session initialized successfully", data });
   } catch (error) {
     console.error("Error initializing session:", error);
@@ -89,12 +91,13 @@ export const initializeSession = async (req, res) => {
 export const generateResponse = async (req, res) => {
   try {
     const { input, session_id } = req.body;
-    if (!input || typeof input !== "string") {
+    if (!input || typeof input !== "string" || session_id) {
       return res.status(400).json({ error: "Invalid input" });
     }
 
-    const isTesting = true;
+    const isTesting = false;
 
+    // Save user input to DB
     saveToDatabase(session_id, input, true);
 
     if (isTesting) {
@@ -122,6 +125,29 @@ export const generateResponse = async (req, res) => {
         testing: true,
       });
     }
+    console.log("session:", session_id);
+    const { data: history, error: fetchError } = await supabaseAdmin
+      .from("message")
+      .select("from_user, message_content")
+      .eq("session_id", session_id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (fetchError) {
+      console.error("Error fetching message history:", fetchError.message);
+    }
+
+    const contextMessages = (history || []).reverse().map((msg) => ({
+      role: msg.from_user ? "user" : "assistant",
+      content: msg.message_content,
+    }));
+
+    contextMessages.push({
+      role: "user",
+      content: input,
+    });
+
+    console.log("Context messages:", contextMessages);
 
     const chatCompletion = await client.chatCompletion({
       provider: "fireworks-ai",
@@ -132,10 +158,7 @@ export const generateResponse = async (req, res) => {
           content:
             "You are a helpful assistant. You're Jason, a medical assistant. You are here to help with medical queries and provide information based on the user's input. Do not provide any personal medical advice or diagnoses. Be brief and to the point. Don't exceed more than 3 sentences in your response. Speak in Tagalog, and you do not need to translate you're response to English. Conversation Rules: 1. Always be polite and respectful. 2. Do not provide personal medical advice or diagnoses. 3. Keep responses brief and to the point, ideally no more than 3 sentences. 4. Always shorten your sentences to be concise and clear. 5. Speak in Tagalog, no need to translate your response to English. 6. Use Everyday words and phrases that are easy to understand. 7. Avoid using complex medical jargon or technical terms unless necessary. 8. Throw in some emotion. 9. Use a friendly and approachable tone and always use an active voice.",
         },
-        {
-          role: "user",
-          content: input,
-        },
+        ...contextMessages,
       ],
     });
 

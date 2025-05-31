@@ -1,12 +1,18 @@
 import { useEffect, useState, useRef } from "react";
 import axiosInstance from "../../utils/axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { selectUser } from "../../features/user/userSelector";
+import Swal from "sweetalert2";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 const CallModal = ({
   setCallActive,
   isConversationActive,
   setIsConversationActive,
 }) => {
+  const user = useSelector(selectUser);
+  const navigate = useNavigate();
   const [inputValue, setInputValue] = useState("");
   const [chatLog, setChatLog] = useState([]);
   const [currentAudio, setCurrentAudio] = useState(null);
@@ -15,11 +21,26 @@ const CallModal = ({
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [onLoad, setOnLoad] = useState(true);
+  const [audioDuration, setAudioDuration] = useState(0);
 
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
+  const hasInitialized = useRef(false);
+
+  const [sessionId, setSessionId] = useState(null);
 
   useEffect(() => {
+    if (!user || !user.id) {
+      Swal.fire({
+        icon: "error",
+        title: "Session Error",
+        text: "User is not authenticated. Please log in to start a session.",
+      });
+
+      setTimeout(() => navigate("/login"), 500);
+      return;
+    }
+
     if (onLoad) {
       startConversation();
       setOnLoad(false);
@@ -46,9 +67,6 @@ const CallModal = ({
 
       recognitionRef.current.onend = () => {
         handleSendMessage(transcript);
-        if (isConversationActive && !isProcessing) {
-          setTimeout(startListening, 500);
-        }
       };
     }
 
@@ -123,7 +141,7 @@ const CallModal = ({
         }
 
         const res = await fetch(
-          "https://api.elevenlabs.io/v1/text-to-speech/nPczCjzI2devNBz1zQrb?output_format=mp3_44100_128",
+          "https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb?output_format=mp3_44100_128",
           {
             method: "POST",
             headers: {
@@ -149,9 +167,17 @@ const CallModal = ({
         audioRef.current = audio;
         setCurrentAudio(audio);
 
+        audio.addEventListener("loadedmetadata", () => {
+          console.log("TTS Duration:", audio.duration, "seconds");
+        });
+
+        audio.play();
+
         audio.onended = () => {
           console.log("Audio finished playing");
-          startListening();
+          setTimeout(() => {
+            startListening();
+          }, 100);
           resolve();
         };
 
@@ -159,8 +185,6 @@ const CallModal = ({
           console.error("Audio playback error:", error);
           reject(error);
         };
-
-        audio.play();
       } catch (error) {
         console.error("TTS Error:", error);
         reject(error);
@@ -170,7 +194,13 @@ const CallModal = ({
 
   const generateResponse = async (input, currentChatLog) => {
     try {
-      const response = await axiosInstance.post("/conversation", { input });
+      console.log("Generating response for input:", sessionId);
+      const response = await axiosInstance.post("/conversation", {
+        input,
+        session_id: sessionId,
+      });
+
+      console.log("Response from server:", response.data);
 
       const newMessage = {
         id: Date.now() + 1,
@@ -197,9 +227,41 @@ const CallModal = ({
     }
   };
 
-  const startConversation = () => {
+  const initializeSession = async () => {
+    try {
+      const response = await axiosInstance.post("/conversation/initialize", {
+        type: "call",
+        user_id: user.id,
+      });
+      console.log("Session response:", response.data);
+      if (response.data.message) {
+        setSessionId(response.data.data[0].id);
+        console.log("Session initialized:", response.data.data[0].id);
+      } else {
+        console.error("Failed to initialize session:", response.data.error);
+        Swal.fire({
+          icon: "error",
+          title: "Session Error",
+          text: "Failed to initialize session. Please try again later.",
+        });
+        setCallActive(false);
+        stopConversation();
+        stopAudio();
+        return;
+      }
+    } catch (error) {
+      console.error("Error initializing session:", error);
+    }
+  };
+
+  const startConversation = async () => {
     setIsConversationActive(true);
     startListening();
+
+    if (!sessionId && !hasInitialized.current) {
+      hasInitialized.current = true;
+      await initializeSession();
+    }
   };
 
   const stopConversation = () => {
