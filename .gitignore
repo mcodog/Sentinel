@@ -3,4 +3,7 @@ backend/node_modules
 backend/.env
 
 **/.examples
+**/node_modules
 **/.env.*
+**/migrations
+# docs

@@ -4,7 +4,7 @@ class ChatbotController {
     // Send a message to the chatbot and get a response
     static async sendResponse(req, res) {
         try {
-            const { message, userId } = req.body;
+            const { message, userId, sessionId, isAnonymous = false } = req.body;
 
             // Validate required fields
             if (!message) {
@@ -14,34 +14,34 @@ class ChatbotController {
                 });
             }
 
-            if (!userId) {
+            // Check if anonymous chat is enabled when trying to use anonymous mode
+            if (isAnonymous && !ChatbotService.isAnonymousChatEnabled()) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Anonymous chat feature is disabled',
+                    fallbackResponse: "Anonymous chat is currently disabled. Please create an account to access the mental health chatbot."
+                });
+            }
+
+            // Validate user ID for authenticated users
+            if (!isAnonymous && !userId) {
                 return res.status(400).json({
                     success: false,
-                    error: 'User ID is required'
+                    error: 'User ID is required for authenticated users'
                 });
             }
 
-            // Validate message content
-            const validation = ChatbotService.validateMessage(message);
-
-            // If message contains risk factors, prioritize crisis response
-            if (validation.needsImmediateAttention) {
-                const crisisResponse = ChatbotService.getCrisisResponse();
-                return res.status(200).json({
-                    success: true,
-                    response: crisisResponse,
-                    isCrisisResponse: true,
-                    timestamp: new Date().toISOString()
-                });
-            }
-
-            // Generate chatbot response
-            const result = await ChatbotService.generateResponse(userId, message);
+            // Generate chatbot response with sentiment analysis and storage (database or memory)
+            const result = await ChatbotService.generateResponse(userId, message, sessionId, isAnonymous);
 
             if (result.success) {
                 return res.status(200).json({
                     success: true,
                     response: result.response,
+                    sessionId: result.sessionId,
+                    sentiment: result.sentiment,
+                    isCrisisResponse: result.isCrisisResponse || false,
+                    isAnonymous: result.isAnonymous || false,
                     conversationLength: result.conversationLength,
                     timestamp: new Date().toISOString()
                 });
@@ -67,15 +67,27 @@ class ChatbotController {
     static async getResponse(req, res) {
         try {
             const { userId } = req.params;
+            const { sessionId, limit = 20, isAnonymous = 'false' } = req.query;
 
-            if (!userId) {
+            const isAnon = isAnonymous === 'true';
+
+            // Validate user ID for authenticated users
+            if (!isAnon && !userId) {
                 return res.status(400).json({
                     success: false,
-                    error: 'User ID is required'
+                    error: 'User ID is required for authenticated users'
                 });
             }
 
-            const result = ChatbotService.getConversationHistory(userId);
+            // Check if anonymous chat is enabled when trying to use anonymous mode
+            if (isAnon && !ChatbotService.isAnonymousChatEnabled()) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Anonymous chat feature is disabled'
+                });
+            }
+
+            const result = await ChatbotService.getConversationHistory(userId, sessionId, parseInt(limit), isAnon);
 
             if (result.success) {
                 return res.status(200).json({
@@ -104,15 +116,27 @@ class ChatbotController {
     static async clearChat(req, res) {
         try {
             const { userId } = req.params;
+            const { sessionId, isAnonymous = 'false' } = req.query;
 
-            if (!userId) {
+            const isAnon = isAnonymous === 'true';
+
+            // Validate user ID for authenticated users
+            if (!isAnon && !userId) {
                 return res.status(400).json({
                     success: false,
-                    error: 'User ID is required'
+                    error: 'User ID is required for authenticated users'
                 });
             }
 
-            const result = ChatbotService.clearConversation(userId);
+            // Check if anonymous chat is enabled when trying to use anonymous mode
+            if (isAnon && !ChatbotService.isAnonymousChatEnabled()) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Anonymous chat feature is disabled'
+                });
+            }
+
+            const result = await ChatbotService.clearConversation(userId, sessionId, isAnon);
 
             if (result.success) {
                 return res.status(200).json({
@@ -143,6 +167,7 @@ class ChatbotController {
                 success: true,
                 message: 'Chatbot service is running',
                 service: 'Sentinel Mental Health Chatbot',
+                anonymousChatEnabled: ChatbotService.isAnonymousChatEnabled(),
                 timestamp: new Date().toISOString()
             });
         } catch (error) {
@@ -150,6 +175,26 @@ class ChatbotController {
             return res.status(500).json({
                 success: false,
                 error: 'Service health check failed'
+            });
+        }
+    }
+
+    // Check if anonymous chat feature is enabled
+    static async checkAnonymousFeature(req, res) {
+        try {
+            return res.status(200).json({
+                success: true,
+                anonymousChatEnabled: ChatbotService.isAnonymousChatEnabled(),
+                message: ChatbotService.isAnonymousChatEnabled()
+                    ? 'Anonymous chat is enabled'
+                    : 'Anonymous chat is disabled',
+                timestamp: new Date().toISOString()
+            });
+        } catch (error) {
+            console.error('Error checking anonymous feature:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to check anonymous feature status'
             });
         }
     }
