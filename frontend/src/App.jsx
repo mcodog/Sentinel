@@ -9,9 +9,10 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard/Index";
 import SideLayout from "./components/layouts/Side";
 
-// Pages for doctors
 import DoctorDashboard from "./pages/doctor/Index";
 import DoctorUsers from "./pages/doctor/Users";
+// FOR PATIENTS
+import PatientDashboard from "./pages/patients/Index";
 
 const App = () => {
   return (
@@ -23,13 +24,18 @@ const App = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/session" element={<Session />} />
+
       <Route path="/admin" element={<SideLayout />}>
         <Route index element={<Dashboard />} />
       </Route>
+
       <Route path="/doctor" element={<SideLayout />}>
-        <Route index element={<DoctorDashboard />}></Route>
+        <Route index element={<DoctorDashboard />} />
         <Route path="users" element={<DoctorUsers />} />
       </Route>
+
+      {/* PATIENT route without SideLayout */}
+      <Route path="/patient" element={<PatientDashboard />} />
     </Routes>
   );
 };
