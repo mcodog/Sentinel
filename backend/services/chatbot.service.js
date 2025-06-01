@@ -12,7 +12,7 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 const client = new InferenceClient(process.env.HUGGING_FACE_API_TOKEN);
 
 // Feature toggle for anonymous chat - set to 'true' to enable, 'false' to disable
-const ALLOW_ANONYMOUS_CHAT = process.env.ALLOW_ANONYMOUS_CHAT === 'true';
+const ALLOW_ANONYMOUS_CHAT = process.env.ALLOW_ANONYMOUS_CHAT === "true";
 
 // In-memory storage for anonymous user conversations
 const anonymousChats = new Map();
@@ -50,225 +50,255 @@ Remember: You are here to listen, support, and guide users toward better mental 
 const MODEL = "meta-llama/Llama-3.1-8B-Instruct";
 
 class ChatbotService {
-    /**
-     * Generate a session ID for anonymous users
-     */
-    static generateAnonymousSessionId() {
-        return `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  /**
+   * Generate a session ID for anonymous users
+   */
+  static generateAnonymousSessionId() {
+    return `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Check if anonymous chat is enabled
+   */
+  static isAnonymousChatEnabled() {
+    return ALLOW_ANONYMOUS_CHAT;
+  }
+
+  /**
+   * Save message to memory for anonymous users
+   */
+  static saveAnonymousMessage(
+    sessionId,
+    messageContent,
+    fromUser,
+    sentiment = null
+  ) {
+    if (!anonymousChats.has(sessionId)) {
+      anonymousChats.set(sessionId, {
+        messages: [],
+        createdAt: new Date().toISOString(),
+      });
     }
 
-    /**
-     * Check if anonymous chat is enabled
-     */
-    static isAnonymousChatEnabled() {
-        return ALLOW_ANONYMOUS_CHAT;
+    const message = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      message: messageContent,
+      isUser: fromUser,
+      timestamp: new Date().toISOString(),
+      sentiment: sentiment,
+    };
+
+    anonymousChats.get(sessionId).messages.push(message);
+    return { success: true, data: message };
+  }
+
+  /**
+   * Get conversation history for anonymous users
+   */
+  static getAnonymousConversationHistory(sessionId, limit = 20) {
+    if (!anonymousChats.has(sessionId)) {
+      return { success: true, conversation: [], messageCount: 0 };
     }
 
-    /**
-     * Save message to memory for anonymous users
-     */
-    static saveAnonymousMessage(sessionId, messageContent, fromUser, sentiment = null) {
-        if (!anonymousChats.has(sessionId)) {
-            anonymousChats.set(sessionId, {
-                messages: [],
-                createdAt: new Date().toISOString()
-            });
+    const sessionData = anonymousChats.get(sessionId);
+    const limitedMessages = sessionData.messages.slice(-limit);
+
+    return {
+      success: true,
+      conversation: limitedMessages,
+      messageCount: limitedMessages.length,
+    };
+  }
+
+  /**
+   * Clear anonymous conversation
+   */
+  static clearAnonymousConversation(sessionId) {
+    if (anonymousChats.has(sessionId)) {
+      anonymousChats.delete(sessionId);
+      return {
+        success: true,
+        message: "Anonymous conversation cleared successfully",
+      };
+    }
+    return {
+      success: true,
+      message: "No anonymous conversation found to clear",
+    };
+  }
+
+  /**
+   * Get or create a chatbot session for the user
+   * Uses the existing sessions table with type='chatbot'
+   */
+  static async getOrCreateChatbotSession(userId, sessionId = null) {
+    try {
+      if (sessionId) {
+        // Try to get existing session
+        const { data: existingSession, error } = await supabaseAdmin
+          .from("sessions")
+          .select("*")
+          .eq("id", sessionId)
+          .eq("user_id", userId)
+          .eq("type", "chatbot")
+          .single();
+
+        if (!error && existingSession) {
+          return { success: true, session: existingSession };
         }
+      }
 
-        const message = {
-            id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            message: messageContent,
-            isUser: fromUser,
-            timestamp: new Date().toISOString(),
-            sentiment: sentiment
-        };
+      // Create new chatbot session
+      const { data: newSession, error: createError } = await supabaseAdmin
+        .from("sessions")
+        .insert({
+          user_id: userId,
+          type: "chatbot",
+        })
+        .select()
+        .single();
 
-        anonymousChats.get(sessionId).messages.push(message);
-        return { success: true, data: message };
+      if (createError) {
+        console.error("Error creating chatbot session:", createError);
+        return { success: false, error: createError.message };
+      }
+
+      return { success: true, session: newSession };
+    } catch (error) {
+      console.error("Error in getOrCreateChatbotSession:", error);
+      return { success: false, error: error.message };
     }
+  }
 
-    /**
-     * Get conversation history for anonymous users
-     */
-    static getAnonymousConversationHistory(sessionId, limit = 20) {
-        if (!anonymousChats.has(sessionId)) {
-            return { success: true, conversation: [], messageCount: 0 };
+  /**
+   * Save message to the message table following the conversation pattern
+   */
+  static async saveMessage(sessionId, messageContent, fromUser) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("message")
+        .insert({
+          session_id: sessionId,
+          message_content: messageContent,
+          from_user: fromUser,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error saving message:", error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error("Error in saveMessage:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Save sentiment analysis to the sentiment_analysis table
+   */
+  static async saveSentimentAnalysis(messageId, sentimentData) {
+    try {
+      console.log("=== SENTIMENT ANALYSIS SAVE ATTEMPT ===");
+      console.log("Message ID:", messageId);
+      console.log("Sentiment Data received:", sentimentData ? "YES" : "NO");
+
+      if (!sentimentData) {
+        console.log("❌ No sentiment data provided - skipping save");
+        return { success: true }; // Skip if no sentiment data
+      }
+
+      console.log("📊 Sentiment Data Structure:");
+      console.log("- Overall category:", sentimentData.overall?.category);
+      console.log("- Overall compound score:", sentimentData.overall?.compound);
+      console.log("- Overall intensity:", sentimentData.overall?.intensity);
+      console.log(
+        "- Translation wasTranslated:",
+        sentimentData.translation?.wasTranslated
+      );
+      console.log(
+        "- Translation originalLanguage:",
+        sentimentData.translation?.originalLanguage
+      );
+      console.log("- Full sentiment object keys:", Object.keys(sentimentData));
+      console.log(
+        "- Full sentiment object:",
+        JSON.stringify(sentimentData, null, 2)
+      );
+
+      const insertData = {
+        message_id: messageId,
+        sentiment_category: sentimentData.overall?.category || "neutral",
+        sentiment_score: sentimentData.overall?.compound || 0,
+        intensity: sentimentData.overall?.intensity || 0,
+        was_translated: sentimentData.translation?.wasTranslated || false,
+        original_language: sentimentData.translation?.originalLanguage || "en",
+        analysis_data: sentimentData || {},
+      };
+
+      console.log("💾 Data to insert:", insertData);
+
+      const { data, error } = await supabaseAdmin
+        .from("sentiment_analysis")
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("❌ Database error saving sentiment analysis:", error);
+        console.error("Error details:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+        return { success: false, error: error.message };
+      }
+
+      console.log("✅ Sentiment analysis saved successfully!");
+      console.log("Saved data:", data);
+      return { success: true, data };
+    } catch (error) {
+      console.error("❌ Exception in saveSentimentAnalysis:", error);
+      console.error("Stack trace:", error.stack);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get conversation history for a chatbot session (supports both authenticated and anonymous)
+   */
+  static async getConversationHistory(
+    userId = null,
+    sessionId = null,
+    limit = 20,
+    isAnonymous = false
+  ) {
+    try {
+      // Handle anonymous users
+      if (isAnonymous) {
+        if (!sessionId) {
+          return { success: true, conversation: [], messageCount: 0 };
         }
+        return this.getAnonymousConversationHistory(sessionId, limit);
+      }
 
-        const sessionData = anonymousChats.get(sessionId);
-        const limitedMessages = sessionData.messages.slice(-limit);
-
+      // Handle authenticated users (existing database logic)
+      if (!userId) {
         return {
-            success: true,
-            conversation: limitedMessages,
-            messageCount: limitedMessages.length
+          success: false,
+          error: "User ID is required for authenticated users",
+          conversation: [],
         };
-    }
+      }
 
-    /**
-     * Clear anonymous conversation
-     */
-    static clearAnonymousConversation(sessionId) {
-        if (anonymousChats.has(sessionId)) {
-            anonymousChats.delete(sessionId);
-            return { success: true, message: 'Anonymous conversation cleared successfully' };
-        }
-        return { success: true, message: 'No anonymous conversation found to clear' };
-    }
-
-    /**
-     * Get or create a chatbot session for the user
-     * Uses the existing sessions table with type='chatbot'
-     */
-    static async getOrCreateChatbotSession(userId, sessionId = null) {
-        try {
-            if (sessionId) {
-                // Try to get existing session
-                const { data: existingSession, error } = await supabaseAdmin
-                    .from("sessions")
-                    .select("*")
-                    .eq("id", sessionId)
-                    .eq("user_id", userId)
-                    .eq("type", "chatbot")
-                    .single();
-
-                if (!error && existingSession) {
-                    return { success: true, session: existingSession };
-                }
-            }
-
-            // Create new chatbot session
-            const { data: newSession, error: createError } = await supabaseAdmin
-                .from("sessions")
-                .insert({
-                    user_id: userId,
-                    type: "chatbot"
-                })
-                .select()
-                .single();
-
-            if (createError) {
-                console.error("Error creating chatbot session:", createError);
-                return { success: false, error: createError.message };
-            }
-
-            return { success: true, session: newSession };
-        } catch (error) {
-            console.error("Error in getOrCreateChatbotSession:", error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    /**
-     * Save message to the message table following the conversation pattern
-     */
-    static async saveMessage(sessionId, messageContent, fromUser) {
-        try {
-            const { data, error } = await supabaseAdmin
-                .from("message")
-                .insert({
-                    session_id: sessionId,
-                    message_content: messageContent,
-                    from_user: fromUser
-                })
-                .select()
-                .single();
-
-            if (error) {
-                console.error("Error saving message:", error);
-                return { success: false, error: error.message };
-            }
-
-            return { success: true, data };
-        } catch (error) {
-            console.error("Error in saveMessage:", error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    /**
-     * Save sentiment analysis to the sentiment_analysis table
-     */
-    static async saveSentimentAnalysis(messageId, sentimentData) {
-        try {
-            console.log('=== SENTIMENT ANALYSIS SAVE ATTEMPT ===');
-            console.log('Message ID:', messageId);
-            console.log('Sentiment Data received:', sentimentData ? 'YES' : 'NO');
-
-            if (!sentimentData) {
-                console.log('❌ No sentiment data provided - skipping save');
-                return { success: true }; // Skip if no sentiment data
-            }
-
-            console.log('📊 Sentiment Data Structure:');
-            console.log('- Overall category:', sentimentData.overall?.category);
-            console.log('- Overall compound score:', sentimentData.overall?.compound);
-            console.log('- Overall intensity:', sentimentData.overall?.intensity);
-            console.log('- Translation wasTranslated:', sentimentData.translation?.wasTranslated);
-            console.log('- Translation originalLanguage:', sentimentData.translation?.originalLanguage);
-            console.log('- Full sentiment object keys:', Object.keys(sentimentData));
-            console.log('- Full sentiment object:', JSON.stringify(sentimentData, null, 2));
-
-            const insertData = {
-                message_id: messageId,
-                sentiment_category: sentimentData.overall?.category || 'neutral',
-                sentiment_score: sentimentData.overall?.compound || 0,
-                intensity: sentimentData.overall?.intensity || 0,
-                was_translated: sentimentData.translation?.wasTranslated || false,
-                original_language: sentimentData.translation?.originalLanguage || 'en',
-                analysis_data: sentimentData || {}
-            };
-
-            console.log('💾 Data to insert:', insertData);
-
-            const { data, error } = await supabaseAdmin
-                .from("sentiment_analysis")
-                .insert(insertData)
-                .select()
-                .single();
-
-            if (error) {
-                console.error("❌ Database error saving sentiment analysis:", error);
-                console.error("Error details:", {
-                    code: error.code,
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint
-                });
-                return { success: false, error: error.message };
-            }
-
-            console.log("✅ Sentiment analysis saved successfully!");
-            console.log("Saved data:", data);
-            return { success: true, data };
-        } catch (error) {
-            console.error("❌ Exception in saveSentimentAnalysis:", error);
-            console.error("Stack trace:", error.stack);
-            return { success: false, error: error.message };
-        }
-    }
-
-    /**
-     * Get conversation history for a chatbot session (supports both authenticated and anonymous)
-     */
-    static async getConversationHistory(userId = null, sessionId = null, limit = 20, isAnonymous = false) {
-        try {
-            // Handle anonymous users
-            if (isAnonymous) {
-                if (!sessionId) {
-                    return { success: true, conversation: [], messageCount: 0 };
-                }
-                return this.getAnonymousConversationHistory(sessionId, limit);
-            }
-
-            // Handle authenticated users (existing database logic)
-            if (!userId) {
-                return { success: false, error: 'User ID is required for authenticated users', conversation: [] };
-            }
-
-            let query = supabaseAdmin
-                .from("sessions")
-                .select(`
+      let query = supabaseAdmin
+        .from("sessions")
+        .select(
+          `
                     id,
                     created_at,
                     message (
@@ -281,370 +311,426 @@ class ChatbotService {
                             sentiment_score
                         )
                     )
-                `)
-                .eq("user_id", userId)
-                .eq("type", "chatbot")
-                .order("created_at", { ascending: false });
+                `
+        )
+        .eq("user_id", userId)
+        .eq("type", "chatbot")
+        .order("created_at", { ascending: false });
 
-            if (sessionId) {
-                query = query.eq("id", sessionId);
-            }
+      if (sessionId) {
+        query = query.eq("id", sessionId);
+      }
 
-            const { data: sessions, error } = await query.limit(sessionId ? 1 : 5);
+      const { data: sessions, error } = await query.limit(sessionId ? 1 : 5);
 
-            if (error) {
-                console.error("Error fetching conversation history:", error);
-                return { success: false, error: error.message, conversation: [] };
-            }
+      if (error) {
+        console.error("Error fetching conversation history:", error);
+        return { success: false, error: error.message, conversation: [] };
+      }
 
-            if (!sessions || sessions.length === 0) {
-                return { success: true, conversation: [], messageCount: 0 };
-            }
+      if (!sessions || sessions.length === 0) {
+        return { success: true, conversation: [], messageCount: 0 };
+      }
 
-            // Flatten messages from all sessions and sort by timestamp
-            const allMessages = [];
-            sessions.forEach(session => {
-                if (session.message) {
-                    session.message.forEach(msg => {
-                        allMessages.push({
-                            id: msg.id,
-                            message: msg.message_content,
-                            isUser: msg.from_user,
-                            timestamp: msg.created_at,
-                            sentiment: msg.sentiment_analysis?.[0] || null,
-                            sessionId: session.id
-                        });
-                    });
-                }
+      // Flatten messages from all sessions and sort by timestamp
+      const allMessages = [];
+      sessions.forEach((session) => {
+        if (session.message) {
+          session.message.forEach((msg) => {
+            allMessages.push({
+              id: msg.id,
+              message: msg.message_content,
+              isUser: msg.from_user,
+              timestamp: msg.created_at,
+              sentiment: msg.sentiment_analysis?.[0] || null,
+              sessionId: session.id,
             });
-
-            // Sort by timestamp and limit
-            allMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-            const limitedMessages = allMessages.slice(-limit);
-
-            return {
-                success: true,
-                conversation: limitedMessages,
-                messageCount: limitedMessages.length
-            };
-        } catch (error) {
-            console.error("Error getting conversation history:", error);
-            return { success: false, error: error.message, conversation: [] };
+          });
         }
-    }
+      });
 
-    /**
-     * Generate response using the organization's database structure
-     * Supports both authenticated users (database) and anonymous users (memory)
-     */
-    static async generateResponse(userId, userMessage, sessionId = null, isAnonymous = false) {
+      // Sort by timestamp and limit
+      allMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      const limitedMessages = allMessages.slice(-limit);
+
+      return {
+        success: true,
+        conversation: limitedMessages,
+        messageCount: limitedMessages.length,
+      };
+    } catch (error) {
+      console.error("Error getting conversation history:", error);
+      return { success: false, error: error.message, conversation: [] };
+    }
+  }
+
+  /**
+   * Generate response using the organization's database structure
+   * Supports both authenticated users (database) and anonymous users (memory)
+   */
+  static async generateResponse(
+    userId,
+    userMessage,
+    sessionId = null,
+    isAnonymous = false
+  ) {
+    try {
+      // Validate input
+      if (
+        !userMessage ||
+        typeof userMessage !== "string" ||
+        userMessage.trim().length === 0
+      ) {
+        throw new Error("Invalid message provided");
+      }
+
+      const trimmedMessage = userMessage.trim();
+      let activeSessionId = sessionId;
+
+      // Handle anonymous users if feature is enabled
+      if (isAnonymous) {
+        if (!this.isAnonymousChatEnabled()) {
+          throw new Error("Anonymous chat feature is disabled");
+        }
+
+        // Generate session ID for anonymous user if not provided
+        if (!activeSessionId) {
+          activeSessionId = this.generateAnonymousSessionId();
+        }
+
+        // Analyze sentiment of user message
+        let sentimentAnalysis = null;
         try {
-            // Validate input
-            if (!userMessage || typeof userMessage !== 'string' || userMessage.trim().length === 0) {
-                throw new Error('Invalid message provided');
-            }
-
-            const trimmedMessage = userMessage.trim();
-            let activeSessionId = sessionId;
-
-            // Handle anonymous users if feature is enabled
-            if (isAnonymous) {
-                if (!this.isAnonymousChatEnabled()) {
-                    throw new Error('Anonymous chat feature is disabled');
-                }
-
-                // Generate session ID for anonymous user if not provided
-                if (!activeSessionId) {
-                    activeSessionId = this.generateAnonymousSessionId();
-                }
-
-                // Analyze sentiment of user message
-                let sentimentAnalysis = null;
-                try {
-                    sentimentAnalysis = await sentimentService.analyzeSentiment(trimmedMessage);
-                } catch (sentimentError) {
-                    console.warn('Sentiment analysis failed for anonymous user:', sentimentError.message);
-                }
-
-                // Save user message to memory
-                this.saveAnonymousMessage(activeSessionId, trimmedMessage, true, sentimentAnalysis);
-
-                // Check for crisis content
-                const validation = this.validateMessage(trimmedMessage);
-                if (validation.needsImmediateAttention) {
-                    const crisisResponse = this.getCrisisResponse();
-                    this.saveAnonymousMessage(activeSessionId, crisisResponse, false);
-
-                    return {
-                        success: true,
-                        response: crisisResponse,
-                        sessionId: activeSessionId,
-                        sentiment: sentimentAnalysis,
-                        isCrisisResponse: true,
-                        isAnonymous: true
-                    };
-                }
-
-                // Get recent conversation history for context
-                const historyResult = this.getAnonymousConversationHistory(activeSessionId, 10);
-                const recentMessages = historyResult.success ? historyResult.conversation : [];
-
-                // Build conversation context for AI model
-                const conversation = [];
-                recentMessages.slice(-20).forEach(msg => { // Last 10 exchanges (20 messages)
-                    if (msg.isUser) {
-                        conversation.push({ role: 'user', content: msg.message });
-                    } else {
-                        conversation.push({ role: 'assistant', content: msg.message });
-                    }
-                });
-
-                // Add current user message
-                conversation.push({ role: 'user', content: trimmedMessage });
-
-                // Prepare messages for the AI model
-                const messages = [
-                    { role: 'system', content: PROMPT },
-                    ...conversation
-                ];
-
-                // Generate response using HuggingFace Inference API
-                const response = await client.chatCompletion({
-                    model: MODEL,
-                    messages: messages,
-                    max_tokens: 500,
-                    temperature: 0.7,
-                    top_p: 0.9,
-                });
-
-                const botResponse = response.choices[0]?.message?.content?.trim();
-
-                if (!botResponse) {
-                    throw new Error('No response generated from AI model');
-                }
-
-                // Save bot response to memory
-                this.saveAnonymousMessage(activeSessionId, botResponse, false);
-
-                return {
-                    success: true,
-                    response: botResponse,
-                    sessionId: activeSessionId,
-                    sentiment: sentimentAnalysis,
-                    conversationLength: conversation.length,
-                    isAnonymous: true
-                };
-            }
-
-            // Handle authenticated users (existing database logic)
-            if (!userId) {
-                throw new Error('User ID is required for authenticated users');
-            }
-
-            // Get or create chatbot session
-            const sessionResult = await this.getOrCreateChatbotSession(userId, sessionId);
-            if (!sessionResult.success) {
-                throw new Error(`Failed to get/create session: ${sessionResult.error}`);
-            }
-
-            const session = sessionResult.session;
-            activeSessionId = session.id;
-
-            // Analyze sentiment of user message
-            let sentimentAnalysis = null;
-            try {
-                sentimentAnalysis = await sentimentService.analyzeSentiment(trimmedMessage);
-            } catch (sentimentError) {
-                console.warn('Sentiment analysis failed:', sentimentError.message);
-            }
-
-            // Save user message to database
-            const userMessageResult = await this.saveMessage(activeSessionId, trimmedMessage, true);
-            if (!userMessageResult.success) {
-                console.warn('Failed to save user message:', userMessageResult.error);
-            }
-
-            // Save sentiment analysis if available
-            if (userMessageResult.success && sentimentAnalysis) {
-                await this.saveSentimentAnalysis(userMessageResult.data.id, sentimentAnalysis);
-            }
-
-            // Check for crisis content
-            const validation = this.validateMessage(trimmedMessage);
-            if (validation.needsImmediateAttention) {
-                const crisisResponse = this.getCrisisResponse();
-
-                // Save crisis response to database
-                await this.saveMessage(activeSessionId, crisisResponse, false);
-
-                return {
-                    success: true,
-                    response: crisisResponse,
-                    sessionId: activeSessionId,
-                    sentiment: sentimentAnalysis,
-                    isCrisisResponse: true,
-                    isAnonymous: false
-                };
-            }
-
-            // Get recent conversation history for context
-            const historyResult = await this.getConversationHistory(userId, activeSessionId, 10);
-            const recentMessages = historyResult.success ? historyResult.conversation : [];
-
-            // Build conversation context for AI model
-            const conversation = [];
-            recentMessages.slice(-20).forEach(msg => { // Last 10 exchanges (20 messages)
-                if (msg.isUser) {
-                    conversation.push({ role: 'user', content: msg.message });
-                } else {
-                    conversation.push({ role: 'assistant', content: msg.message });
-                }
-            });
-
-            // Add current user message
-            conversation.push({ role: 'user', content: trimmedMessage });
-
-            // Prepare messages for the AI model
-            const messages = [
-                { role: 'system', content: PROMPT },
-                ...conversation
-            ];
-
-            // Generate response using HuggingFace Inference API
-            const response = await client.chatCompletion({
-                model: MODEL,
-                messages: messages,
-                max_tokens: 500,
-                temperature: 0.7,
-                top_p: 0.9,
-            });
-
-            const botResponse = response.choices[0]?.message?.content?.trim();
-
-            if (!botResponse) {
-                throw new Error('No response generated from AI model');
-            }
-
-            // Save bot response to database
-            const botMessageResult = await this.saveMessage(activeSessionId, botResponse, false);
-            if (!botMessageResult.success) {
-                console.warn('Failed to save bot message:', botMessageResult.error);
-            }
-
-            return {
-                success: true,
-                response: botResponse,
-                sessionId: activeSessionId,
-                sentiment: sentimentAnalysis,
-                conversationLength: conversation.length,
-                isAnonymous: false
-            };
-
-        } catch (error) {
-            console.error('Error generating chatbot response:', error);
-
-            // Return a fallback response for service errors
-            const fallbackResponse = "I'm sorry, I'm having trouble processing your message right now. Please try again in a moment. If you're experiencing a mental health emergency, please contact a crisis helpline or emergency services immediately.";
-
-            return {
-                success: false,
-                response: fallbackResponse,
-                error: error.message
-            };
+          sentimentAnalysis = await sentimentService.analyzeSentiment(
+            trimmedMessage
+          );
+        } catch (sentimentError) {
+          console.warn(
+            "Sentiment analysis failed for anonymous user:",
+            sentimentError.message
+          );
         }
-    }
 
-    /**
-     * Clear conversation history for a user (supports both authenticated and anonymous)
-     */
-    static async clearConversation(userId = null, sessionId = null, isAnonymous = false) {
-        try {
-            // Handle anonymous users
-            if (isAnonymous) {
-                if (sessionId) {
-                    return this.clearAnonymousConversation(sessionId);
-                } else {
-                    // Clear all anonymous conversations (not recommended in production)
-                    anonymousChats.clear();
-                    return { success: true, message: 'All anonymous conversations cleared successfully' };
-                }
-            }
-
-            // Handle authenticated users (existing database logic)
-            if (!userId) {
-                return { success: false, error: 'User ID is required for authenticated users' };
-            }
-
-            let sessionQuery = supabaseAdmin
-                .from("sessions")
-                .select("id")
-                .eq("user_id", userId)
-                .eq("type", "chatbot");
-
-            if (sessionId) {
-                sessionQuery = sessionQuery.eq("id", sessionId);
-            }
-
-            const { data: sessions, error: sessionError } = await sessionQuery;
-
-            if (sessionError) {
-                console.error("Error fetching chatbot sessions:", sessionError);
-                return { success: false, error: sessionError.message };
-            }
-
-            if (!sessions || sessions.length === 0) {
-                return { success: true, message: 'No chatbot sessions found to clear' };
-            }
-
-            // Delete messages from chatbot sessions
-            const sessionIds = sessions.map(s => s.id);
-            const { error: deleteError } = await supabaseAdmin
-                .from("message")
-                .delete()
-                .in("session_id", sessionIds);
-
-            if (deleteError) {
-                console.error("Error clearing messages:", deleteError);
-                return { success: false, error: deleteError.message };
-            }
-
-            return { success: true, message: 'Chatbot conversation history cleared successfully' };
-        } catch (error) {
-            console.error("Error clearing conversation:", error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    /**
-     * Validate message for crisis content
-     */
-    static validateMessage(message) {
-        const harmfulPatterns = [
-            /self.?harm/i,
-            /suicide/i,
-            /kill.?(myself|me)/i,
-            /end.?my.?life/i,
-            /hurt.?(myself|me)/i,
-            /want.?to.?die/i,
-            /not.?worth.?living/i
-        ];
-
-        const containsHarmfulContent = harmfulPatterns.some(pattern =>
-            pattern.test(message)
+        // Save user message to memory
+        this.saveAnonymousMessage(
+          activeSessionId,
+          trimmedMessage,
+          true,
+          sentimentAnalysis
         );
 
-        return {
-            isValid: true,
-            containsRiskFactors: containsHarmfulContent,
-            needsImmediateAttention: containsHarmfulContent
-        };
-    }
+        // Check for crisis content
+        const validation = this.validateMessage(trimmedMessage);
+        if (validation.needsImmediateAttention) {
+          const crisisResponse = this.getCrisisResponse();
+          this.saveAnonymousMessage(activeSessionId, crisisResponse, false);
 
-    /**
-     * Get crisis response message
-     */
-    static getCrisisResponse() {
-        return `I'm deeply concerned about what you've shared, and your safety and well-being are my top priorities.
+          return {
+            success: true,
+            response: crisisResponse,
+            sessionId: activeSessionId,
+            sentiment: sentimentAnalysis,
+            isCrisisResponse: true,
+            isAnonymous: true,
+          };
+        }
+
+        // Get recent conversation history for context
+        const historyResult = this.getAnonymousConversationHistory(
+          activeSessionId,
+          10
+        );
+        const recentMessages = historyResult.success
+          ? historyResult.conversation
+          : [];
+
+        // Build conversation context for AI model
+        const conversation = [];
+        recentMessages.slice(-20).forEach((msg) => {
+          // Last 10 exchanges (20 messages)
+          if (msg.isUser) {
+            conversation.push({ role: "user", content: msg.message });
+          } else {
+            conversation.push({ role: "assistant", content: msg.message });
+          }
+        });
+
+        // Add current user message
+        conversation.push({ role: "user", content: trimmedMessage });
+
+        // Prepare messages for the AI model
+        const messages = [{ role: "system", content: PROMPT }, ...conversation];
+
+        // Generate response using HuggingFace Inference API
+        const response = await client.chatCompletion({
+          model: MODEL,
+          messages: messages,
+          max_tokens: 500,
+          temperature: 0.7,
+          top_p: 0.9,
+        });
+
+        const botResponse = response.choices[0]?.message?.content?.trim();
+
+        if (!botResponse) {
+          throw new Error("No response generated from AI model");
+        }
+
+        // Save bot response to memory
+        this.saveAnonymousMessage(activeSessionId, botResponse, false);
+
+        return {
+          success: true,
+          response: botResponse,
+          sessionId: activeSessionId,
+          sentiment: sentimentAnalysis,
+          conversationLength: conversation.length,
+          isAnonymous: true,
+        };
+      }
+
+      // Handle authenticated users (existing database logic)
+      if (!userId) {
+        throw new Error("User ID is required for authenticated users");
+      }
+
+      // Get or create chatbot session
+      const sessionResult = await this.getOrCreateChatbotSession(
+        userId,
+        sessionId
+      );
+      if (!sessionResult.success) {
+        throw new Error(`Failed to get/create session: ${sessionResult.error}`);
+      }
+
+      const session = sessionResult.session;
+      activeSessionId = session.id;
+
+      // Analyze sentiment of user message
+      let sentimentAnalysis = null;
+      try {
+        sentimentAnalysis = await sentimentService.analyzeSentiment(
+          trimmedMessage
+        );
+      } catch (sentimentError) {
+        console.warn("Sentiment analysis failed:", sentimentError.message);
+      }
+
+      // Save user message to database
+      const userMessageResult = await this.saveMessage(
+        activeSessionId,
+        trimmedMessage,
+        true
+      );
+      if (!userMessageResult.success) {
+        console.warn("Failed to save user message:", userMessageResult.error);
+      }
+
+      // Save sentiment analysis if available
+      if (userMessageResult.success && sentimentAnalysis) {
+        await this.saveSentimentAnalysis(
+          userMessageResult.data.id,
+          sentimentAnalysis
+        );
+      }
+
+      // Check for crisis content
+      const validation = this.validateMessage(trimmedMessage);
+      if (validation.needsImmediateAttention) {
+        const crisisResponse = this.getCrisisResponse();
+
+        // Save crisis response to database
+        await this.saveMessage(activeSessionId, crisisResponse, false);
+
+        return {
+          success: true,
+          response: crisisResponse,
+          sessionId: activeSessionId,
+          sentiment: sentimentAnalysis,
+          isCrisisResponse: true,
+          isAnonymous: false,
+        };
+      }
+
+      // Get recent conversation history for context
+      const historyResult = await this.getConversationHistory(
+        userId,
+        activeSessionId,
+        10
+      );
+      const recentMessages = historyResult.success
+        ? historyResult.conversation
+        : [];
+
+      // Build conversation context for AI model
+      const conversation = [];
+      recentMessages.slice(-20).forEach((msg) => {
+        // Last 10 exchanges (20 messages)
+        if (msg.isUser) {
+          conversation.push({ role: "user", content: msg.message });
+        } else {
+          conversation.push({ role: "assistant", content: msg.message });
+        }
+      });
+
+      // Add current user message
+      conversation.push({ role: "user", content: trimmedMessage });
+
+      // Prepare messages for the AI model
+      const messages = [{ role: "system", content: PROMPT }, ...conversation];
+
+      // Generate response using HuggingFace Inference API
+      const response = await client.chatCompletion({
+        model: MODEL,
+        messages: messages,
+        max_tokens: 500,
+        temperature: 0.7,
+        top_p: 0.9,
+      });
+
+      const botResponse = response.choices?.[0]?.message?.content?.trim();
+
+      if (!botResponse) {
+        throw new Error("No response generated from AI model");
+      }
+
+      // Save bot response to database
+      const botMessageResult = await this.saveMessage(
+        activeSessionId,
+        botResponse,
+        false
+      );
+      if (!botMessageResult.success) {
+        console.warn("Failed to save bot message:", botMessageResult.error);
+      }
+
+      return {
+        success: true,
+        response: botResponse,
+        sessionId: activeSessionId,
+        sentiment: sentimentAnalysis,
+        conversationLength: conversation.length,
+        isAnonymous: false,
+      };
+    } catch (error) {
+      console.error("Error generating chatbot response:", error);
+
+      // Return a fallback response for service errors
+      const fallbackResponse =
+        "I'm sorry, I'm having trouble processing your message right now. Please try again in a moment. If you're experiencing a mental health emergency, please contact a crisis helpline or emergency services immediately.";
+
+      return {
+        success: false,
+        response: fallbackResponse,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Clear conversation history for a user (supports both authenticated and anonymous)
+   */
+  static async clearConversation(
+    userId = null,
+    sessionId = null,
+    isAnonymous = false
+  ) {
+    try {
+      // Handle anonymous users
+      if (isAnonymous) {
+        if (sessionId) {
+          return this.clearAnonymousConversation(sessionId);
+        } else {
+          // Clear all anonymous conversations (not recommended in production)
+          anonymousChats.clear();
+          return {
+            success: true,
+            message: "All anonymous conversations cleared successfully",
+          };
+        }
+      }
+
+      // Handle authenticated users (existing database logic)
+      if (!userId) {
+        return {
+          success: false,
+          error: "User ID is required for authenticated users",
+        };
+      }
+
+      let sessionQuery = supabaseAdmin
+        .from("sessions")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("type", "chatbot");
+
+      if (sessionId) {
+        sessionQuery = sessionQuery.eq("id", sessionId);
+      }
+
+      const { data: sessions, error: sessionError } = await sessionQuery;
+
+      if (sessionError) {
+        console.error("Error fetching chatbot sessions:", sessionError);
+        return { success: false, error: sessionError.message };
+      }
+
+      if (!sessions || sessions.length === 0) {
+        return { success: true, message: "No chatbot sessions found to clear" };
+      }
+
+      // Delete messages from chatbot sessions
+      const sessionIds = sessions.map((s) => s.id);
+      const { error: deleteError } = await supabaseAdmin
+        .from("message")
+        .delete()
+        .in("session_id", sessionIds);
+
+      if (deleteError) {
+        console.error("Error clearing messages:", deleteError);
+        return { success: false, error: deleteError.message };
+      }
+
+      return {
+        success: true,
+        message: "Chatbot conversation history cleared successfully",
+      };
+    } catch (error) {
+      console.error("Error clearing conversation:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Validate message for crisis content
+   */
+  static validateMessage(message) {
+    const harmfulPatterns = [
+      /self.?harm/i,
+      /suicide/i,
+      /kill.?(myself|me)/i,
+      /end.?my.?life/i,
+      /hurt.?(myself|me)/i,
+      /want.?to.?die/i,
+      /not.?worth.?living/i,
+    ];
+
+    const containsHarmfulContent = harmfulPatterns.some((pattern) =>
+      pattern.test(message)
+    );
+
+    return {
+      isValid: true,
+      containsRiskFactors: containsHarmfulContent,
+      needsImmediateAttention: containsHarmfulContent,
+    };
+  }
+
+  /**
+   * Get crisis response message
+   */
+  static getCrisisResponse() {
+    return `I'm deeply concerned about what you've shared, and your safety and well-being are my top priorities.
 
 Please consider reaching out to a mental health professional or crisis helpline immediately:
 
@@ -659,7 +745,7 @@ If you're in immediate danger, please call emergency services (911 in the Philip
 
 Would you like to share more about what's been going on? I'm here to listen.
 `;
-    }
+  }
 }
 
 export default ChatbotService;

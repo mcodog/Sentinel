@@ -1,6 +1,7 @@
-import ChatbotService from '../services/chatbot.service.js';
+import ChatbotService from "../services/chatbot.service.js";
 
 class ChatbotController {
+
     // Send a message to the chatbot and get a response
     static async sendResponse(req, res) {
         try {
@@ -201,4 +202,3 @@ class ChatbotController {
 }
 
 export default ChatbotController;
-

@@ -1,12 +1,19 @@
 import { useEffect, useState, useRef } from "react";
 import axiosInstance from "../../utils/axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { selectUser } from "../../features/user/userSelector";
+import Swal from "sweetalert2";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 const CallModal = ({
+  sessionId,
   setCallActive,
   isConversationActive,
   setIsConversationActive,
 }) => {
+  const user = useSelector(selectUser);
+  const navigate = useNavigate();
   const [inputValue, setInputValue] = useState("");
   const [chatLog, setChatLog] = useState([]);
   const [currentAudio, setCurrentAudio] = useState(null);
@@ -15,11 +22,23 @@ const CallModal = ({
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [onLoad, setOnLoad] = useState(true);
+  const [audioDuration, setAudioDuration] = useState(0);
 
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
 
   useEffect(() => {
+    if (!user || !user.id) {
+      Swal.fire({
+        icon: "error",
+        title: "Session Error",
+        text: "User is not authenticated. Please log in to start a session.",
+      });
+
+      setTimeout(() => navigate("/login"), 500);
+      return;
+    }
+
     if (onLoad) {
       startConversation();
       setOnLoad(false);
@@ -46,9 +65,6 @@ const CallModal = ({
 
       recognitionRef.current.onend = () => {
         handleSendMessage(transcript);
-        if (isConversationActive && !isProcessing) {
-          setTimeout(startListening, 500);
-        }
       };
     }
 
@@ -76,10 +92,6 @@ const CallModal = ({
       recognitionRef.current.stop();
     }
     setIsListening(false);
-  };
-
-  const handleInputChange = (e) => {
-    setInputValue(e.target.value);
   };
 
   const handleSendMessage = async (input) => {
@@ -149,9 +161,17 @@ const CallModal = ({
         audioRef.current = audio;
         setCurrentAudio(audio);
 
+        audio.addEventListener("loadedmetadata", () => {
+          console.log("TTS Duration:", audio.duration, "seconds");
+        });
+
+        audio.play();
+
         audio.onended = () => {
           console.log("Audio finished playing");
-          startListening();
+          setTimeout(() => {
+            startListening();
+          }, 100);
           resolve();
         };
 
@@ -159,8 +179,6 @@ const CallModal = ({
           console.error("Audio playback error:", error);
           reject(error);
         };
-
-        audio.play();
       } catch (error) {
         console.error("TTS Error:", error);
         reject(error);
@@ -169,8 +187,20 @@ const CallModal = ({
   };
 
   const generateResponse = async (input, currentChatLog) => {
+    if (!sessionId) {
+      Swal.fire({
+        icon: "error",
+        title: "Session Error",
+        text: "Session ID is not available. Please start a new conversation.",
+      });
+      return;
+    }
+    console.log("Session", sessionId);
     try {
-      const response = await axiosInstance.post("/conversation", { input });
+      const response = await axiosInstance.post("/conversation", {
+        input,
+        session_id: sessionId,
+      });
 
       const newMessage = {
         id: Date.now() + 1,
@@ -197,7 +227,7 @@ const CallModal = ({
     }
   };
 
-  const startConversation = () => {
+  const startConversation = async () => {
     setIsConversationActive(true);
     startListening();
   };

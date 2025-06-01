@@ -57,11 +57,8 @@ const Sidebar = () => {
             </Link>
           )}
 
-          <Link
-            to="/admin/users"
-            className="flex items-center justify-center p-4"
-          >
-            Sign Out
+          <Link to="/" className="flex items-center justify-center p-4">
+            Go back to Client
           </Link>
         </div>
       </div>

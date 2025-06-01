@@ -10,7 +10,7 @@
 2. Supabase Backend & API
 
 [x] Define and create tables: users, sessions, transcripts metadata (off-chain storage)
-[] Implement API endpoints for user management, session creation
+[x] Implement API endpoints for user management, session creation
 [] Implement endpoints for storing and fetching encrypted transcript data
 [x] Integrate authentication with Supabase (patients & doctors)
 
@@ -33,7 +33,7 @@
 
 [x] Build dashboard layout and routing
 [x] Show patient list (from Supabase) with basic info
-[] Placeholder for transcripts & call logs UI
+[x] Placeholder for transcripts & call logs UI
 
 6. LLM Integration (Chat Assistant)
 
