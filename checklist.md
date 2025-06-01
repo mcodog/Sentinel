@@ -1,4 +1,4 @@
-### Project Completion: 34.5%
+### Project Completion: 66.67%
 
 1. ### Project Setup & Dev Environment
 
@@ -16,12 +16,11 @@
 
 3. ICP Motoko Smart Contracts: Blockchain Core
 
-[] Design data model for blockchain (hashes, audit logs, consent records)
-[] Develop Motoko smart contracts for:
-[] Storing transcript hashes + timestamps
+[x] Design data model for blockchain (hashes, audit logs, consent records)
+[x] Storing transcript hashes + timestamps
 [] Storing audit trail events (access, updates)
 [] Managing patient consent permissions
-[] Deploy initial smart contracts on ICP local or testnet
+[x] Deploy initial smart contracts on ICP local or testnet
 
 4. Frontend: Patient Web App (Login + Session Start)
 
@@ -49,14 +48,13 @@
 
 8. Real-time Transcript & Sentiment Analysis
 
-[] Stream transcriptions to backend for sentiment analysis (using LLM or separate model)
-[] Store encrypted transcripts off-chain (Supabase)
-[] Generate hash of encrypted transcripts and send to blockchain smart contract for immutability
-[] Display sentiment analysis on frontend in real-time
+[x] Stream transcriptions to backend for sentiment analysis (using LLM or separate model)
+[x] Generate hash of encrypted transcripts and send to blockchain smart contract for immutability
+[x] Display sentiment analysis on frontend in real-time
 
 9. Doctor Dashboard: Transcript & Audit Trail
 
-[] Fetch and display transcripts with sentiment highlights
+[x] Fetch and display transcripts with sentiment highlights
 [] Query blockchain for audit logs related to patient sessions
 [] Display audit trail (access, consent updates) in dashboard
 [] Add UI to manage patient consent stored on blockchain

@@ -8,26 +8,106 @@ import dayjs from "dayjs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const PROMPT = `You are Sentinel, a compassionate and professional mental health therapy chatbot. Your purpose is to provide emotional support, active listening, and therapeutic guidance to users who may be struggling with mental health challenges.
+
+Core Guidelines:
+- Always maintain a warm, empathetic, and non-judgmental tone
+- Practice active listening by acknowledging and validating user emotions
+- Ask thoughtful follow-up questions to encourage deeper reflection
+- Provide coping strategies and therapeutic techniques when appropriate
+- Recognize when issues are beyond your scope and suggest professional help
+- Never provide medical diagnoses or prescribe medications
+- Maintain strict confidentiality and create a safe space for users
+- Use evidence-based therapeutic approaches (CBT, mindfulness, etc.)
+- Be patient and allow users to express themselves at their own pace
+- Use Leading Questions.
+- Don't overexplain.
+- Be brief and straight to the point
+
+Boundaries:
+- You are NOT a replacement for professional therapy or medical care
+- You cannot diagnose mental health conditions
+- You cannot prescribe medications
+- If a user expresses suicidal thoughts or immediate danger, encourage them to seek immediate professional help
+- Stay focused on mental health and emotional well-being topics
+- Politely redirect conversations that are unrelated to mental health
+
+Response Style:
+- Keep responses conversational and accessible
+- Use "I" statements to show empathy ("I understand how difficult this must be")
+- Offer practical coping strategies and techniques
+- Encourage self-reflection and personal growth
+- Validate emotions while promoting healthy thinking patterns
+- Talk less, listen more. Use leading questions and make the user comfortable to speak without saying too much.
+
+Remember: You are here to listen, support, and guide users toward better mental health and emotional well-being.`;
+
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 const client = new InferenceClient(process.env.HUGGING_FACE_API_TOKEN);
 
 export const retrieveConversations = async (req, res) => {
   const { userId } = req.params;
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = "created_at",
+    sortOrder = "desc",
+  } = req.query;
+
   if (!userId) {
     return res.status(400).json({ error: "User ID is required" });
   }
 
+  // Validate pagination parameters
+  const pageNum = parseInt(page);
+  const limitNum = parseInt(limit);
+
+  if (pageNum < 1) {
+    return res.status(400).json({ error: "Page must be greater than 0" });
+  }
+
+  if (limitNum < 1 || limitNum > 100) {
+    return res.status(400).json({ error: "Limit must be between 1 and 100" });
+  }
+
+  // Calculate offset
+  const offset = (pageNum - 1) * limitNum;
+
   try {
+    // Get total count first
+    const { count, error: countError } = await supabaseAdmin
+      .from("sessions")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId);
+
+    if (countError) {
+      console.error("Error counting conversations:", countError);
+      return res.status(500).json({ error: "Failed to count conversations" });
+    }
+
+    // Validate sort parameters
+    const validSortFields = ["created_at", "updated_at", "type"];
+    const validSortOrders = ["asc", "desc"];
+
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "created_at";
+    const sortDirection = validSortOrders.includes(sortOrder.toLowerCase())
+      ? sortOrder.toLowerCase() === "asc"
+      : false; // false = descending
+
+    // Get paginated data
     const { data, error } = await supabaseAdmin
       .from("sessions")
       .select(
         `
         *,
-        message(*)
+        message(*),
+        session_analysis(*),
+        users(*)
       `
       )
       .eq("user_id", userId)
-      .order("created_at", { ascending: true });
+      .order(sortField, { ascending: sortDirection })
+      .range(offset, offset + limitNum - 1);
 
     if (error) {
       console.error("Error retrieving conversations:", error);
@@ -37,13 +117,22 @@ export const retrieveConversations = async (req, res) => {
     }
 
     if (!data || data.length === 0) {
-      return res.status(404).json({ message: "No conversations found" });
+      return res.status(200).json({
+        conversations: [],
+        pagination: {
+          currentPage: pageNum,
+          totalPages: 0,
+          totalItems: count || 0,
+          itemsPerPage: limitNum,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      });
     }
 
     // Transform the data to match mockChatSessions format
     const formattedConversations = data.map((session) => {
       const messages = session.message || [];
-
       return {
         id: session.id,
         type: session.type,
@@ -56,10 +145,47 @@ export const retrieveConversations = async (req, res) => {
           message: msg.message_content,
           time: dayjs(msg.created_at).format("h:mm A"),
         })),
+        session_analysis: session.session_analysis
+          ? {
+              summary: session.session_analysis.summary || null,
+              description: session.session_analysis.description || null,
+              sentiment_score: session.session_analysis.sentiment_score || null,
+              intensity_score: session.session_analysis.intensity_score || null,
+              sentiment_category:
+                session.session_analysis.sentiment_category || null,
+              keywords: session.session_analysis.keywords || [],
+            }
+          : {
+              summary: null,
+              description: null,
+              sentiment_score: null,
+              intensity_score: null,
+              sentiment_category: null,
+              keywords: [],
+            },
       };
     });
 
-    res.json({ conversations: formattedConversations });
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(count / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPreviousPage = pageNum > 1;
+
+    console.log("Formatted conversations:", formattedConversations);
+
+    res.json({
+      conversations: formattedConversations,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalItems: count,
+        itemsPerPage: limitNum,
+        hasNextPage,
+        hasPreviousPage,
+        startIndex: offset + 1,
+        endIndex: Math.min(offset + limitNum, count),
+      },
+    });
   } catch (error) {
     console.error("Error in retrieveConversations:", error);
     res.status(500).json({ error: "Failed to retrieve conversations" });
@@ -94,7 +220,7 @@ export const generateResponse = async (req, res) => {
       return res.status(400).json({ error: "Invalid input" });
     }
 
-    const isTesting = true;
+    const isTesting = false;
 
     saveToDatabase(session_id, input, true);
 
@@ -154,8 +280,7 @@ export const generateResponse = async (req, res) => {
       messages: [
         {
           role: "system",
-          content:
-            "You are a helpful assistant. You're Jason, a medical assistant. You are here to help with medical queries and provide information based on the user's input. Do not provide any personal medical advice or diagnoses. Be brief and to the point. Don't exceed more than 3 sentences in your response. Speak in Tagalog, and you do not need to translate you're response to English. Conversation Rules: 1. Always be polite and respectful. 2. Do not provide personal medical advice or diagnoses. 3. Keep responses brief and to the point, ideally no more than 3 sentences. 4. Always shorten your sentences to be concise and clear. 5. Speak in Tagalog, no need to translate your response to English. 6. Use Everyday words and phrases that are easy to understand. 7. Avoid using complex medical jargon or technical terms unless necessary. 8. Throw in some emotion. 9. Use a friendly and approachable tone and always use an active voice.",
+          content: PROMPT,
         },
         ...contextMessages,
       ],
@@ -238,7 +363,11 @@ const analyzeConversation = async (conversation) => {
       {
         role: "system",
         content: `
-You are a helpful assistant. Your task is to analyze a conversation between a user and an AI and return structured data.
+You are a helpful assistant. Your task is to analyze a conversation between a user and an AI and return structured data. Remember that you are preparing data for a psychologist/doctor to look at so be sure to create a helpful and easy to ready data that doctor's can take a look at and quickly gain an understanding of the patient's status. Remember to always focus on what the user says (Not the AI)
+
+Structured Data Guide:
+- Summary - Summarize the Patient's Concerns and Main Problems.
+- sentiment_category - Analyze what the User says (not the AI) and identify what their status is (positive, neutral, negative)
 
 Respond ONLY in the following JSON format:
 
@@ -247,7 +376,7 @@ Respond ONLY in the following JSON format:
   "description": "Slightly more detailed narrative of what happened.",
   "sentiment_score": 0.75, // Float from 0.0 (negative) to 1.0 (positive)
   "intensity_score": 0.45, // Float from 0.0 (calm) to 1.0 (very intense)
-  "sentiment_category": "neutral", // Must be one of: "positive", "neutral", or "negative"
+  "sentiment_category": "neutral", // Must be one of: "positive", "neutral", or "negative" 
   "keywords": ["problem1", "concern2", "symptom3"] // Focus ONLY on user-raised issues or concerns
 }
 
