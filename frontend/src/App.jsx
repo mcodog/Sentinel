@@ -29,27 +29,28 @@ const App = () => {
           <Route path="/call" element={<Call />} />
         </Route>
 
-      <Route path="session" element={<SessionLayout />}>
-        <Route index element={<Session />} />
-      </Route>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/session" element={<Session />} />
+        <Route path="session" element={<SessionLayout />}>
+          <Route index element={<Session />} />
+        </Route>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/session" element={<Session />} />
 
-      <Route path="/admin" element={<SideLayout />}>
-        <Route index element={<Dashboard />} />
-      </Route>
+        <Route path="/admin" element={<SideLayout />}>
+          <Route index element={<Dashboard />} />
+        </Route>
 
-      <Route path="/doctor" element={<SideLayout />}>
-        <Route index element={<DoctorDashboard />} />
-        <Route path="users" element={<DoctorUsers />} />
-        <Route path="sessions" element={<DoctorSessions />} />
-        <Route path="users/:userId" element={<DoctorSessionsOfUser />} />
-      </Route>
+        <Route path="/doctor" element={<SideLayout />}>
+          <Route index element={<DoctorDashboard />} />
+          <Route path="users" element={<DoctorUsers />} />
+          <Route path="sessions" element={<DoctorSessions />} />
+          <Route path="users/:userId" element={<DoctorSessionsOfUser />} />
+        </Route>
 
-      {/* PATIENT route without SideLayout */}
-      <Route path="/patient" element={<PatientDashboard />} />
-    </Routes>
+        {/* PATIENT route without SideLayout */}
+        <Route path="/patient" element={<PatientDashboard />} />
+      </Routes>
+    </>
   );
 };
 
