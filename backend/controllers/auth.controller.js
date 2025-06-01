@@ -2,7 +2,7 @@ import { supabaseAdmin } from "../services/supabase.service.js";
 
 export const register = async (req, res) => {
   try {
-    const { email, password, firstname, lastname } = req.body;
+    const { email, password, firstname, lastname, gender, dob } = req.body;
     const cleanEmail = email.trim();
 
     const authId = await createAuthUser(cleanEmail, password);
@@ -12,6 +12,8 @@ export const register = async (req, res) => {
       username: firstname + " " + lastname,
       firstname,
       lastname,
+      gender,
+      dob,
     });
 
     res.json({
@@ -88,6 +90,8 @@ export const login = async (req, res) => {
       id: userData.auth_id,
       firstname: userData.firstname,
       lastname: userData.lastname,
+      gender: userData.gender,
+      dob: userData.dob,
     };
 
     console.log(data);

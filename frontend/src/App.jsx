@@ -7,12 +7,16 @@ import Session from "./pages/Session";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard/Index";
 import SideLayout from "./components/layouts/Side";
+
 import SessionLayout from "./components/layouts/session/Main";
 // Pages for doctors
 import DoctorDashboard from "./pages/doctor/Index";
 import DoctorUsers from "./pages/doctor/Users";
 import DoctorSessions from "./pages/doctor/Sessions";
 import DoctorSessionsOfUser from "./pages/doctor/SingleSession";
+
+// FOR PATIENTS
+import PatientDashboard from "./pages/patients/Index";
 
 import Call from "./pages/Welcome/Call";
 
@@ -30,15 +34,20 @@ const App = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/session" element={<Session />} />
+
       <Route path="/admin" element={<SideLayout />}>
         <Route index element={<Dashboard />} />
       </Route>
+
       <Route path="/doctor" element={<SideLayout />}>
-        <Route index element={<DoctorDashboard />}></Route>
+        <Route index element={<DoctorDashboard />} />
         <Route path="users" element={<DoctorUsers />} />
         <Route path="sessions" element={<DoctorSessions />} />
         <Route path="users/:userId" element={<DoctorSessionsOfUser />} />
       </Route>
+
+      {/* PATIENT route without SideLayout */}
+      <Route path="/patient" element={<PatientDashboard />} />
     </Routes>
   );
 };
