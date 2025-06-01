@@ -104,6 +104,8 @@ export default function Users() {
                   <TableCell>Role</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Registered At</TableCell>
+                  <TableCell>Provider</TableCell>
+                  <TableCell>Last Sign In</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -119,7 +121,6 @@ export default function Users() {
                         new Date(user.dob).getFullYear()}
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
-
                     <TableCell>
                       {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                     </TableCell>
@@ -127,10 +128,11 @@ export default function Users() {
                       {user.status.charAt(0).toUpperCase() +
                         user.status.slice(1)}
                     </TableCell>
-
                     <TableCell>
                       {new Date(user.created_at).toLocaleString()}
                     </TableCell>
+                    <TableCell>{user.auth_identity?.provider}</TableCell>
+                    <TableCell>{user.auth_identity?.last_sign_in}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -157,6 +159,10 @@ export default function Users() {
                 <div>
                   <Typography variant="h6">{user.username}</Typography>
                   <Typography variant="subtitle2">{user.email}</Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    {user.auth_identity?.provider} |{" "}
+                    {user.auth_identity?.last_sign_in}
+                  </Typography>
                 </div>
               </div>
 
