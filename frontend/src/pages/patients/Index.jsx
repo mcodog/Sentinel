@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { selectUser } from '../../features/user/userSelector';
+import ChatContainer from '../../components/chat/ChatContainer';
 
 const PatientDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [selectedChat, setSelectedChat] = useState(null);
-  const [newMessage, setNewMessage] = useState('');
-  const [messages, setMessages] = useState([]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showMoodCheck, setShowMoodCheck] = useState(false);
   const [selectedMood, setSelectedMood] = useState({
@@ -13,21 +13,6 @@ const PatientDashboard = () => {
     value: 'happy',
     color: 'bg-green-100 border-green-300 hover:bg-green-200'
   });
-
-  // Mock user data
-  const user = {
-    user_metadata: {
-      full_name: 'rossy duhh'
-    },
-    email: 'dfs.dddd@example.com'
-  };
-
-  // Mock chat history
-  const chatHistory = [
-    { id: 1, name: 'AI Therapy Assistant', lastMessage: 'How are you feeling today?', time: '2 hours ago', unread: 2 },
-    { id: 2, name: 'AI Wellness Coach', lastMessage: 'Would you like to continue our breathing exercise session?', time: '1 day ago', unread: 0 },
-    { id: 3, name: 'Mental Health Support', lastMessage: 'Remember to practice the mindfulness techniques we discussed', time: '3 days ago', unread: 1 },
-  ];
 
   // Mood options
   const moodOptions = [
@@ -41,14 +26,15 @@ const PatientDashboard = () => {
     { emoji: '✨', label: 'Great', value: 'great', color: 'bg-pink-100 border-pink-300 hover:bg-pink-200' },
   ];
 
-  // Mock messages for selected chat
-  const mockMessages = [
-    { id: 1, sender: 'ai', message: 'Hello! I\'m your AI mental health assistant. How are you feeling today?', time: '2:30 PM', name: 'AI Assistant' },
-    { id: 2, sender: 'user', message: 'Hi, I\'ve been feeling a bit anxious lately.', time: '2:32 PM' },
-    { id: 3, sender: 'ai', message: 'I understand that anxiety can be challenging. Can you tell me more about what might be contributing to these feelings?', time: '2:35 PM', name: 'AI Assistant' },
-    { id: 4, sender: 'user', message: 'It\'s mainly work stress and some personal issues.', time: '2:37 PM' },
-    { id: 5, sender: 'ai', message: 'Work stress and personal challenges are common sources of anxiety. Let\'s explore some coping strategies that might help you manage these feelings better.', time: '2:39 PM', name: 'AI Assistant' },
-  ];
+  // State for managing sentiment analysis data
+  const [sentimentData, setSentimentData] = useState({
+    overallSentiment: 'neutral',
+    recentTrend: 'stable',
+    score: 0
+  });
+  
+  // Get user from Redux store
+  const user = useSelector(selectUser);
 
   // Icon Components
   const Heart = ({ className = "w-6 h-6" }) => (
@@ -96,24 +82,6 @@ const PatientDashboard = () => {
   const handleMoodSelection = (mood) => {
     setSelectedMood(mood);
     setShowMoodCheck(false);
-  };
-
-  const handleSendMessage = () => {
-    if (newMessage.trim() && selectedChat) {
-      const message = {
-        id: messages.length + 1,
-        sender: 'user',
-        message: newMessage,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages([...messages, message]);
-      setNewMessage('');
-    }
-  };
-
-  const handleChatSelect = (chat) => {
-    setSelectedChat(chat);
-    setMessages(mockMessages);
   };
 
   const getUserDisplayName = () => {
@@ -300,7 +268,7 @@ const PatientDashboard = () => {
                 </div>
 
                 {/* Recent Activity */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border">
+                <div className="bg-white rounded-xl p-6 shadow-sm border mb-6">
                   <h2 className="text-xl font-semibold text-gray-900 mb-6">Recent Activity</h2>
                   <div className="space-y-4">
                     <div className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg">
@@ -323,129 +291,68 @@ const PatientDashboard = () => {
                     </div>
                   </div>
                 </div>
+                
+                {/* Sentiment Analysis */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Mood Analysis</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className={`rounded-lg p-4 ${
+                      sentimentData.overallSentiment === 'positive' ? 'bg-green-50' :
+                      sentimentData.overallSentiment === 'negative' ? 'bg-red-50' : 'bg-blue-50'
+                    }`}>
+                      <h3 className="text-md font-medium text-gray-700 mb-2">Overall Sentiment</h3>
+                      <div className="flex items-center">
+                        <span className="text-2xl mr-2">
+                          {sentimentData.overallSentiment === 'positive' ? '😊' :
+                           sentimentData.overallSentiment === 'negative' ? '😔' : '😐'}
+                        </span>
+                        <span className="text-lg font-semibold capitalize">
+                          {sentimentData.overallSentiment}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="rounded-lg p-4 bg-purple-50">
+                      <h3 className="text-md font-medium text-gray-700 mb-2">Recent Trend</h3>
+                      <div className="flex items-center">
+                        <span className="text-2xl mr-2">
+                          {sentimentData.recentTrend === 'improving' ? '📈' :
+                           sentimentData.recentTrend === 'declining' ? '📉' : '📊'}
+                        </span>
+                        <span className="text-lg font-semibold capitalize">
+                          {sentimentData.recentTrend}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="rounded-lg p-4 bg-yellow-50">
+                      <h3 className="text-md font-medium text-gray-700 mb-2">Sentiment Score</h3>
+                      <div className="flex items-center">
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
+                          <div 
+                            className={`h-2.5 rounded-full ${
+                              sentimentData.score > 0 ? 'bg-green-600' :
+                              sentimentData.score < 0 ? 'bg-red-600' : 'bg-yellow-600'
+                            }`}
+                            style={{ width: `${Math.abs(sentimentData.score) * 100}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-medium">
+                          {sentimentData.score.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {/* Chat Interface */}
           {activeTab === 'chat' && (
-            <div className="flex-1 flex bg-gray-50">
-              {/* Chat Sidebar */}
-              <div className="w-80 bg-white border-r flex flex-col">
-                <div className="p-4 border-b">
-                  <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto">
-                  {chatHistory.map((chat) => (
-                    <div
-                      key={chat.id}
-                      onClick={() => handleChatSelect(chat)}
-                      className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition-colors ${
-                        selectedChat?.id === chat.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                          <Bot className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium text-gray-900 truncate">{chat.name}</p>
-                            <span className="text-xs text-gray-500">{chat.time}</span>
-                          </div>
-                          <p className="text-sm text-gray-500 truncate">{chat.lastMessage}</p>
-                        </div>
-                        {chat.unread > 0 && (
-                          <div className="w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
-                            {chat.unread}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Chat Area */}
-              <div className="flex-1 flex flex-col">
-                {selectedChat ? (
-                  <>
-                    {/* Chat Header */}
-                    <div className="p-4 border-b bg-white">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                            <Bot className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-900">{selectedChat.name}</h3>
-                            <p className="text-sm text-green-600">Online</p>
-                          </div>
-                        </div>
-                        <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                          <Phone className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                      {messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                            message.sender === 'user'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-white border shadow-sm'
-                          }`}>
-                            {message.sender === 'ai' && (
-                              <p className="text-xs text-gray-500 mb-1">{message.name}</p>
-                            )}
-                            <p className="text-sm">{message.message}</p>
-                            <p className={`text-xs mt-1 ${
-                              message.sender === 'user' ? 'text-blue-200' : 'text-gray-400'
-                            }`}>
-                              {message.time}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Message Input */}
-                    <div className="p-4 border-t bg-white">
-                      <div className="flex space-x-3">
-                        <input
-                          type="text"
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                          placeholder="Type your message..."
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        />
-                        <button
-                          onClick={handleSendMessage}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
-                        >
-                          <Send />
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center bg-white">
-                    <div className="text-center">
-                      <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Select a conversation</h3>
-                      <p className="text-gray-500">Choose a chat from the sidebar to start messaging</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <ChatContainer 
+              setSentimentData={setSentimentData} 
+            />
           )}
         </div>
       </div>

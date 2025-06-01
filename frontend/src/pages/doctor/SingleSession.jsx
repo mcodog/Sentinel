@@ -10,6 +10,7 @@ import { IoIosCall } from "react-icons/io";
 import { IoTimeOutline } from "react-icons/io5";
 import { TbReportAnalytics } from "react-icons/tb";
 import UserSentimentSummary from "../../components/sentiment/user-summary";
+import { Switch } from "@mui/material";
 
 export default function SingleSession() {
   const { userId } = useParams();
@@ -18,8 +19,21 @@ export default function SingleSession() {
   const [session, setSession] = useState(null);
   const [activeTab, setActiveTab] = useState("call");
   const [selectedChat, setSelectedChat] = useState(null);
-  // const user = useSelector(selectUser);
   const [user, setUser] = useState({});
+  const [sentimentMode, setSentimentMode] = useState(false);
+  const [sentimentSource, setSentimentSource] = useState("vader"); // "vader" or "llm"
+
+  useEffect(() => {
+    if (userId) {
+      axiosInstance.get(`/users/${userId}`)
+        .then(res => {
+          // If backend returns { data: user }, handle both {user} and {data: user}
+          if (res.data && res.data.data) setUser(res.data.data);
+          else setUser(res.data);
+        })
+        .catch(() => setUser({}));
+    }
+  }, [userId]);
 
   const fetchSessions = async () => {
     try {
@@ -27,10 +41,8 @@ export default function SingleSession() {
       const res = await axiosInstance.get(
         `/conversation/${userId || "default_user_id"}`
       );
-      // console.log("Fetched sessions:", res.data);
       if (res.status === 200) {
         const { conversations } = res.data;
-
         setChatSessions(conversations || []);
         if (conversations && conversations.length > 0) {
           setSession(conversations[0]);
@@ -49,7 +61,7 @@ export default function SingleSession() {
 
   useEffect(() => {
     fetchSessions();
-  }, []);
+  }, [userId]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -77,6 +89,62 @@ export default function SingleSession() {
     }
   };
 
+  const getWordColor = (category) => {
+    switch (category) {
+      case "positive":
+      case "very_positive":
+        return "text-green-600 font-semibold";
+      case "negative":
+      case "very_negative":
+        return "text-red-600 font-semibold";
+      case "neutral":
+        return "text-gray-800";
+      default:
+        return "text-gray-800";
+    }
+  };
+
+  const renderMessageWithSentiment = (msg) => {
+    console.log(msg)
+
+    let wordsArr = [];
+    if (sentimentSource === "llm" && Array.isArray(msg.llmWordAnalysis) && msg.llmWordAnalysis.length > 0) {
+      wordsArr = msg.llmWordAnalysis;
+    } else if (Array.isArray(msg.sentimentWords) && msg.sentimentWords.length > 0) {
+      wordsArr = msg.sentimentWords;
+    }
+    if (!wordsArr.length) return <span>{msg.message}</span>;
+    const words = msg.message.split(/\s+/);
+    return (
+      <span>
+        {words.map((word, idx) => {
+          // For LLM, match by word and position for accuracy
+          let found;
+          if (sentimentSource === "llm") {
+            found = wordsArr.find(
+              (w) =>
+                w.word &&
+                w.word.toLowerCase() === word.toLowerCase() &&
+                (w.position === undefined || w.position === idx)
+            );
+          } else {
+            found = wordsArr.find(
+              (w) => w.word && w.word.toLowerCase() === word.toLowerCase()
+            );
+          }
+          if (found && found.sentiment && found.sentiment.category) {
+            return (
+              <span key={idx} className={getWordColor(found.sentiment.category)}>
+                {word + " "}
+              </span>
+            );
+          }
+          return <span key={idx}>{word + " "}</span>;
+        })}
+      </span>
+    );
+  };
+
   return (
     <div className="p-4 mx-10">
       <div className="flex items-center gap-5">
@@ -89,9 +157,33 @@ export default function SingleSession() {
           <h1 className="text-2xl font-bold">
             {user?.username
               ? user.username + "'s Conversations"
-              : "john_doe's Conversations"}
+              : "User's Conversations"}
           </h1>
         )}
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-sm text-gray-600">Sentiment Mode</span>
+          <Switch
+            checked={sentimentMode}
+            onChange={() => setSentimentMode((v) => !v)}
+            color="primary"
+          />
+          {sentimentMode && (
+            <div className="flex items-center gap-2 ml-2">
+              <button
+                className={`px-2 py-1 rounded text-xs font-medium ${sentimentSource === "vader" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}`}
+                onClick={() => setSentimentSource("vader")}
+              >
+                VADER
+              </button>
+              <button
+                className={`px-2 py-1 rounded text-xs font-medium ${sentimentSource === "llm" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}`}
+                onClick={() => setSentimentSource("llm")}
+              >
+                LLM
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -240,7 +332,11 @@ export default function SingleSession() {
                             : "bg-gray-100 text-gray-800 rounded-bl-none"
                         }`}
                       >
-                        <p className="text-sm">{msg.message}</p>
+                        <p className="text-sm">
+                          {sentimentMode && msg.sender === "user"
+                            ? renderMessageWithSentiment(msg)
+                            : msg.message}
+                        </p>
                         <p
                           className={`text-xs mt-1 ${
                             msg.sender === "user"
