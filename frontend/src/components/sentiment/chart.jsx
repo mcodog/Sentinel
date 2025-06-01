@@ -16,6 +16,7 @@ import {
   Area,
   AreaChart,
 } from "recharts";
+import axiosInstance from "../../utils/axios";
 
 const SENTIMENT_COLORS = {
   positive: "#10B981",
@@ -26,10 +27,11 @@ const SENTIMENT_COLORS = {
 
 // Pie Chart for Sentiment Distribution
 export const SentimentPieChart = ({ data, title = "Sentiment Distribution" }) => {
+  const safeData = data || { positive: 0, negative: 0, neutral: 0 };
   const pieData = [
-    { name: "Positive", value: data.positive * 100, color: SENTIMENT_COLORS.positive },
-    { name: "Negative", value: data.negative * 100, color: SENTIMENT_COLORS.negative },
-    { name: "Neutral", value: data.neutral * 100, color: SENTIMENT_COLORS.neutral },
+    { name: "Positive", value: (safeData.positive || 0) * 100, color: SENTIMENT_COLORS.positive },
+    { name: "Negative", value: (safeData.negative || 0) * 100, color: SENTIMENT_COLORS.negative },
+    { name: "Neutral", value: (safeData.neutral || 0) * 100, color: SENTIMENT_COLORS.neutral },
   ];
 
   return (
@@ -60,10 +62,11 @@ export const SentimentPieChart = ({ data, title = "Sentiment Distribution" }) =>
 
 // Bar Chart for Sentiment Metrics
 export const SentimentBarChart = ({ data, title = "Sentiment Metrics" }) => {
+  const safeData = data || { positive: 0, negative: 0, neutral: 0 };
   const barData = [
-    { name: "Positive", value: data.positive * 100, fill: SENTIMENT_COLORS.positive },
-    { name: "Negative", value: data.negative * 100, fill: SENTIMENT_COLORS.negative },
-    { name: "Neutral", value: data.neutral * 100, fill: SENTIMENT_COLORS.neutral },
+    { name: "Positive", value: (safeData.positive || 0) * 100, fill: SENTIMENT_COLORS.positive },
+    { name: "Negative", value: (safeData.negative || 0) * 100, fill: SENTIMENT_COLORS.negative },
+    { name: "Neutral", value: (safeData.neutral || 0) * 100, fill: SENTIMENT_COLORS.neutral },
   ];
 
   return (
@@ -84,16 +87,17 @@ export const SentimentBarChart = ({ data, title = "Sentiment Metrics" }) => {
 
 // Line Chart for Sentiment Timeline
 export const SentimentTimelineChart = ({ data, title = "Sentiment Over Time" }) => {
+  const safeData = Array.isArray(data) ? data : [];
   return (
     <div className="bg-white p-4 rounded-lg shadow">
       <h3 className="text-lg font-semibold mb-4 text-gray-700">{title}</h3>
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data}>
+        <LineChart data={safeData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="date" />
           <YAxis domain={[-1, 1]} />
           <Tooltip 
-            formatter={(value, name) => [value.toFixed(3), name]}
+            formatter={(value, name) => [value?.toFixed ? value.toFixed(3) : value, name]}
             labelFormatter={(label) => `Date: ${label}`}
           />
           <Legend />
@@ -126,16 +130,17 @@ export const SentimentTimelineChart = ({ data, title = "Sentiment Over Time" }) 
 
 // Area Chart for Sentiment Intensity
 export const SentimentAreaChart = ({ data, title = "Sentiment Intensity Trends" }) => {
+  const safeData = Array.isArray(data) ? data : [];
   return (
     <div className="bg-white p-4 rounded-lg shadow">
       <h3 className="text-lg font-semibold mb-4 text-gray-700">{title}</h3>
       <ResponsiveContainer width="100%" height={300}>
-        <AreaChart data={data}>
+        <AreaChart data={safeData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="date" />
           <YAxis domain={[0, 1]} />
           <Tooltip 
-            formatter={(value, name) => [value.toFixed(3), name]}
+            formatter={(value, name) => [value?.toFixed ? value.toFixed(3) : value, name]}
             labelFormatter={(label) => `Date: ${label}`}
           />
           <Legend />
@@ -174,6 +179,7 @@ export const SentimentAreaChart = ({ data, title = "Sentiment Intensity Trends" 
 
 // Compound Score Gauge Chart
 export const CompoundScoreGauge = ({ score, title = "Overall Sentiment Score" }) => {
+  const safeScore = typeof score === "number" && !isNaN(score) ? score : 0;
   const getScoreColor = (score) => {
     if (score >= 0.05) return SENTIMENT_COLORS.positive;
     if (score <= -0.05) return SENTIMENT_COLORS.negative;
@@ -186,14 +192,13 @@ export const CompoundScoreGauge = ({ score, title = "Overall Sentiment Score" })
     return "Neutral";
   };
 
-  const normalizedScore = ((score + 1) / 2) * 100; // Convert -1 to 1 scale to 0-100
+  const normalizedScore = ((safeScore + 1) / 2) * 100;
 
   return (
     <div className="bg-white p-4 rounded-lg shadow text-center">
       <h3 className="text-lg font-semibold mb-4 text-gray-700">{title}</h3>
       <div className="relative w-32 h-32 mx-auto mb-4">
         <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
-          {/* Background circle */}
           <circle
             cx="50"
             cy="50"
@@ -202,12 +207,11 @@ export const CompoundScoreGauge = ({ score, title = "Overall Sentiment Score" })
             strokeWidth="8"
             fill="none"
           />
-          {/* Progress circle */}
           <circle
             cx="50"
             cy="50"
             r="40"
-            stroke={getScoreColor(score)}
+            stroke={getScoreColor(safeScore)}
             strokeWidth="8"
             fill="none"
             strokeLinecap="round"
@@ -217,10 +221,10 @@ export const CompoundScoreGauge = ({ score, title = "Overall Sentiment Score" })
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-xl font-bold" style={{ color: getScoreColor(score) }}>
-              {score.toFixed(2)}
+            <div className="text-xl font-bold" style={{ color: getScoreColor(safeScore) }}>
+              {safeScore.toFixed(2)}
             </div>
-            <div className="text-xs text-gray-500">{getScoreLabel(score)}</div>
+            <div className="text-xs text-gray-500">{getScoreLabel(safeScore)}</div>
           </div>
         </div>
       </div>
@@ -230,31 +234,32 @@ export const CompoundScoreGauge = ({ score, title = "Overall Sentiment Score" })
 
 // Summary Cards Component
 export const SentimentSummaryCards = ({ data }) => {
+  const safeData = data || { positive: 0, negative: 0, neutral: 0, compound: 0 };
   const cards = [
     {
       title: "Positive Messages",
-      value: `${(data.positive * 100).toFixed(1)}%`,
+      value: `${(safeData.positive * 100).toFixed(1)}%`,
       color: SENTIMENT_COLORS.positive,
       bgColor: "bg-green-50",
       textColor: "text-green-800",
     },
     {
       title: "Negative Messages",
-      value: `${(data.negative * 100).toFixed(1)}%`,
+      value: `${(safeData.negative * 100).toFixed(1)}%`,
       color: SENTIMENT_COLORS.negative,
       bgColor: "bg-red-50",
       textColor: "text-red-800",
     },
     {
       title: "Neutral Messages",
-      value: `${(data.neutral * 100).toFixed(1)}%`,
+      value: `${(safeData.neutral * 100).toFixed(1)}%`,
       color: SENTIMENT_COLORS.neutral,
       bgColor: "bg-gray-50",
       textColor: "text-gray-800",
     },
     {
       title: "Overall Score",
-      value: data.compound.toFixed(3),
+      value: safeData.compound.toFixed(3),
       color: SENTIMENT_COLORS.compound,
       bgColor: "bg-blue-50",
       textColor: "text-blue-800",
@@ -273,6 +278,16 @@ export const SentimentSummaryCards = ({ data }) => {
       ))}
     </div>
   );
+};
+
+export const fetchUserSentimentSummary = async (userId) => {
+  const { data } = await axiosInstance.get(`/sentiment-summary/user/${userId}`);
+  return data;
+};
+
+export const fetchDashboardSentimentSummary = async () => {
+  const { data } = await axiosInstance.get(`/sentiment-summary/dashboard`);
+  return data;
 };
 
 export default {
