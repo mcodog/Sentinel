@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard/Index";
 import SideLayout from "./components/layouts/Side";
 
 import SessionLayout from "./components/layouts/session/Main";
+
 // Pages for doctors
 import DoctorDashboard from "./pages/doctor/Index";
 import DoctorUsers from "./pages/doctor/Users";
@@ -22,10 +23,13 @@ import Call from "./pages/Welcome/Call";
 import { AuthProvider } from "./context/AuthContext";
 import { DoctorRoute, ProtectedRoute } from "./components/ProtectedRoutes";
 
+import TestBlockchain from "./pages/Testblockchain.jsx";
+
 const App = () => {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/testblockchain" element={<TestBlockchain />} />
         <Route path="/" element={<Main />}>
           <Route index element={<Welcome />} />
           <Route path="/call" element={<Call />} />
