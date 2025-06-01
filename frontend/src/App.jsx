@@ -8,6 +8,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard/Index";
 import SideLayout from "./components/layouts/Side";
 import SessionLayout from "./components/layouts/session/Main";
+
 // Pages for doctors
 import DoctorDashboard from "./pages/doctor/Index";
 import DoctorUsers from "./pages/doctor/Users";
@@ -16,10 +17,13 @@ import DoctorSessionsOfUser from "./pages/doctor/SingleSession";
 
 import Call from "./pages/Welcome/Call";
 
+import TestBlockchain from "./pages/Testblockchain.jsx";
+
 const App = () => {
   return (
     <>
       <Routes>
+        <Route path="/testblockchain" element={<TestBlockchain />} />
         <Route path="/" element={<Main />}>
           <Route index element={<Welcome />} />
           <Route path="/call" element={<Call />} />
