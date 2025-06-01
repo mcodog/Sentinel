@@ -14,6 +14,7 @@ import DoctorDashboard from "./pages/doctor/Index";
 import DoctorUsers from "./pages/doctor/Users";
 import DoctorSessions from "./pages/doctor/Sessions";
 import DoctorSessionsOfUser from "./pages/doctor/SingleSession";
+import SentimentAnalyticsPage from "./pages/doctor/SentimentAnalytics";
 
 // FOR PATIENTS
 import PatientDashboard from "./pages/patients/Index";
@@ -45,6 +46,7 @@ const App = () => {
           <Route path="users" element={<DoctorUsers />} />
           <Route path="sessions" element={<DoctorSessions />} />
           <Route path="users/:userId" element={<DoctorSessionsOfUser />} />
+          <Route path="sentiment" element={<SentimentAnalyticsPage />} />
         </Route>
 
         {/* PATIENT route without SideLayout */}

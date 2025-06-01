@@ -8,6 +8,8 @@ import { Link, useParams } from "react-router-dom";
 import { CiChat2 } from "react-icons/ci";
 import { IoIosCall } from "react-icons/io";
 import { IoTimeOutline } from "react-icons/io5";
+import { TbReportAnalytics } from "react-icons/tb";
+import UserSentimentSummary from "../../components/sentiment/user-summary";
 
 export default function SingleSession() {
   const { userId } = useParams();
@@ -130,6 +132,17 @@ export default function SingleSession() {
             <IoIosCall size={20} />
             <p className="text-lg">Call Recordings</p>
           </div>
+          <div
+            className={`flex gap-3 items-center mb-2 pb-2 cursor-pointer ${
+              activeTab === "sentiment"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-600"
+            }`}
+            onClick={() => setActiveTab("sentiment")}
+          >
+            <TbReportAnalytics size={20} />
+            <p className="text-lg">Patient Summary</p>
+          </div>
         </div>
       )}
 
@@ -143,15 +156,21 @@ export default function SingleSession() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-5 gap-5 mt-5">
-          {/* Left Panel - Chat Sessions List */}
-          <div className="col-span-2">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm h-96 overflow-hidden">
-              <div className="border-b border-gray-200 p-3 bg-gray-50">
-                <p className="font-medium text-sm text-gray-700">
-                  Recent Chat Conversations
-                </p>
-              </div>
+        <>
+          {activeTab === "sentiment" ? (
+            <div className="mt-5">
+              <UserSentimentSummary userId={userId} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-5 gap-5 mt-5">
+              {/* Left Panel - Chat Sessions List */}
+              <div className="col-span-2">
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm h-96 overflow-hidden">
+                  <div className="border-b border-gray-200 p-3 bg-gray-50">
+                    <p className="font-medium text-sm text-gray-700">
+                      Recent Chat Conversations
+                    </p>
+                  </div>
               <div className="overflow-y-auto h-full">
                 {chatSessions.map((chatSession) => (
                   <div
@@ -285,6 +304,8 @@ export default function SingleSession() {
             </div>
           </div>
         </div>
+          )}
+        </>
       )}
     </div>
   );
