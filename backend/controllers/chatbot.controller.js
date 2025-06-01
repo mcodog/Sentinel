@@ -5,7 +5,16 @@ class ChatbotController {
     // Send a message to the chatbot and get a response
     static async sendResponse(req, res) {
         try {
-            const { message, userId, sessionId, isAnonymous = false } = req.body;
+            const {
+                message,
+                userId,
+                sessionId,
+                isAnonymous = false,
+                // LLM configuration options - optional parameters for enhanced sentiment analysis
+                enableLLM = true,
+                enableLLMWordAnalysis = true,
+                enableTranslation = true
+            } = req.body;
 
             // Validate required fields
             if (!message) {
@@ -32,8 +41,15 @@ class ChatbotController {
                 });
             }
 
+            // Prepare LLM configuration options
+            const llmOptions = {
+                enableLLM: Boolean(enableLLM),
+                enableLLMWordAnalysis: Boolean(enableLLMWordAnalysis),
+                enableTranslation: Boolean(enableTranslation)
+            };
+
             // Generate chatbot response with sentiment analysis and storage (database or memory)
-            const result = await ChatbotService.generateResponse(userId, message, sessionId, isAnonymous);
+            const result = await ChatbotService.generateResponse(userId, message, sessionId, isAnonymous, llmOptions);
 
             if (result.success) {
                 return res.status(200).json({
@@ -50,7 +66,7 @@ class ChatbotController {
                 return res.status(500).json({
                     success: false,
                     error: 'Failed to generate response',
-                    fallbackResponse: result.response
+                    fallbackResponse: result.response || "I'm sorry, I'm experiencing technical difficulties. Please try again later."
                 });
             }
 
@@ -93,7 +109,7 @@ class ChatbotController {
             if (result.success) {
                 return res.status(200).json({
                     success: true,
-                    conversation: result.conversation,
+                    conversations: result.conversations,
                     messageCount: result.messageCount,
                     timestamp: new Date().toISOString()
                 });
@@ -196,6 +212,78 @@ class ChatbotController {
             return res.status(500).json({
                 success: false,
                 error: 'Failed to check anonymous feature status'
+            });
+        }
+    }
+
+    // Initialize a new chat session
+    static async initializeSession(req, res) {
+        try {
+            const { userId } = req.body;
+
+            if (!userId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'User ID is required'
+                });
+            }
+
+            const result = await ChatbotService.initializeSession(userId);
+
+            if (result.success) {
+                return res.status(200).json({
+                    success: true,
+                    session: result.session,
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                return res.status(500).json({
+                    success: false,
+                    error: 'Failed to initialize chat session'
+                });
+            }
+
+        } catch (error) {
+            console.error('Error in initializeSession:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error'
+            });
+        }
+    }
+
+    // Delete a chat session
+    static async deleteSession(req, res) {
+        try {
+            const { userId, sessionId } = req.params;
+
+            if (!userId || !sessionId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'User ID and Session ID are required'
+                });
+            }
+
+            const result = await ChatbotService.deleteSession(userId, sessionId);
+
+            if (result.success) {
+                return res.status(200).json({
+                    success: true,
+                    message: result.message,
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                return res.status(500).json({
+                    success: false,
+                    error: 'Failed to delete chat session'
+                });
+            }
+
+        } catch (error) {
+            console.error('Error in deleteSession:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error'
             });
         }
     }

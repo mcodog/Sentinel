@@ -5,7 +5,9 @@ export {
   SentimentTimelineChart,
   SentimentAreaChart,
   CompoundScoreGauge,
-  SentimentSummaryCards
+  SentimentSummaryCards,
+  fetchUserSentimentSummary,
+  fetchDashboardSentimentSummary
 } from './chart';
 
 export { default as UserSentimentSummary } from './user-summary';

@@ -37,7 +37,7 @@ const Sidebar = () => {
                 text="Sessions"
               />
               <SidebarLink
-                to="/doctor/sentiment"
+                to="/doctor/sentiment-analysis"
                 Icon={TbReportAnalytics}
                 text="Sentiment Analytics"
               />
