@@ -4,28 +4,31 @@ import Skeleton from "@mui/material/Skeleton";
 import { selectUser } from "../../features/user/userSelector";
 import { useSelector } from "react-redux";
 import { LuArrowLeft } from "react-icons/lu";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { CiChat2 } from "react-icons/ci";
 import { IoIosCall } from "react-icons/io";
 import { IoTimeOutline } from "react-icons/io5";
 
 export default function SingleSession() {
+  const { userId } = useParams();
   const [chatSessions, setChatSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState(null);
   const [activeTab, setActiveTab] = useState("call");
   const [selectedChat, setSelectedChat] = useState(null);
-  const user = useSelector(selectUser);
+  // const user = useSelector(selectUser);
+  const [user, setUser] = useState({});
 
   const fetchSessions = async () => {
     try {
       setIsLoading(true);
       const res = await axiosInstance.get(
-        `/conversation/${user?.id || "default_user_id"}`
+        `/conversation/${userId || "default_user_id"}`
       );
-      console.log("Fetched sessions:", res.data);
+      // console.log("Fetched sessions:", res.data);
       if (res.status === 200) {
         const { conversations } = res.data;
+
         setChatSessions(conversations || []);
         if (conversations && conversations.length > 0) {
           setSession(conversations[0]);
