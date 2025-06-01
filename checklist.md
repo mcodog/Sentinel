@@ -61,9 +61,9 @@
 
 10. Email Follow-up System
 
-[] Design follow-up email templates with secure session links
-[] Schedule and automate emails using Supabase functions or external service
-[] Link emails to patient sessions and blockchain audit logs for traceability
+[] ~~Design follow-up email templates with secure session links~~
+[] ~~Schedule and automate emails using Supabase functions or external service~~
+[] ~~Link emails to patient sessions and blockchain audit logs for traceability~~
 
 11. Blockchain Enhancements & Testing
 
