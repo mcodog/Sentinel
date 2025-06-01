@@ -7,6 +7,7 @@ import {
   LuHouse,
   LuTimer,
 } from "react-icons/lu";
+import { TbReportAnalytics } from "react-icons/tb";
 import SidebarLink from "./SidebarLink";
 
 const Sidebar = () => {
@@ -34,6 +35,11 @@ const Sidebar = () => {
                 to="/doctor/sessions"
                 Icon={LuTimer}
                 text="Sessions"
+              />
+              <SidebarLink
+                to="/doctor/sentiment"
+                Icon={TbReportAnalytics}
+                text="Sentiment Analytics"
               />
             </>
           ) : (
