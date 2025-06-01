@@ -22,11 +22,12 @@ import Call from "./pages/Welcome/Call";
 
 const App = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Main />}>
-        <Route index element={<Welcome />} />
-        <Route path="/call" element={<Call />} />
-      </Route>
+    <>
+      <Routes>
+        <Route path="/" element={<Main />}>
+          <Route index element={<Welcome />} />
+          <Route path="/call" element={<Call />} />
+        </Route>
 
       <Route path="session" element={<SessionLayout />}>
         <Route index element={<Session />} />

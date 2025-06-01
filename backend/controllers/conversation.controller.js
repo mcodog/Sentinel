@@ -80,7 +80,6 @@ export const initializeSession = async (req, res) => {
       .from("sessions")
       .upsert(sessionData)
       .select();
-    console.log(data);
     res.json({ message: "Session initialized successfully", data });
   } catch (error) {
     console.error("Error initializing session:", error);
@@ -91,14 +90,12 @@ export const initializeSession = async (req, res) => {
 export const generateResponse = async (req, res) => {
   try {
     const { input, session_id } = req.body;
-
     if (!input || typeof input !== "string") {
       return res.status(400).json({ error: "Invalid input" });
     }
+    
+    const isTesting = true;
 
-    const isTesting = false;
-
-    // Save user input to DB
     saveToDatabase(session_id, input, true);
 
     if (isTesting) {
@@ -126,6 +123,7 @@ export const generateResponse = async (req, res) => {
         testing: true,
       });
     }
+
     console.log("session:", session_id);
     const { data: history, error: fetchError } = await supabaseAdmin
       .from("message")
