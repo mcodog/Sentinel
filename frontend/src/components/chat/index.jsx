@@ -138,22 +138,24 @@ const ChatComponent = () => {
 
     try {
       let response;
-      
+
       if (isAnonymousMode) {
         // Anonymous user request
-        response = await axiosInstance.post('/chatbot/send', {
+        const payload = {
           message: userMessage.message,
-          sessionId: sessionId,
           isAnonymous: true
-        });
+        };
+        if (sessionId) payload.sessionId = sessionId;
+        response = await axiosInstance.post('/chatbot/send', payload);
       } else {
         // Authenticated user request
-        response = await axiosInstance.post('/chatbot/send', {
+        const payload = {
           message: userMessage.message,
           userId: userId,
-          sessionId: sessionId,
           isAnonymous: false
-        });
+        };
+        if (sessionId) payload.sessionId = sessionId;
+        response = await axiosInstance.post('/chatbot/send', payload);
       }
 
       if (response.data.success) {

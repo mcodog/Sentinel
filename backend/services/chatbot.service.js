@@ -133,6 +133,14 @@ class ChatbotService {
    */
   static async getOrCreateChatbotSession(userId, sessionId = null) {
     try {
+      // Ensure userId is provided and not empty
+      if (!userId || typeof userId !== "string" || userId.trim() === "") {
+        return { success: false, error: "User ID is required and must be valid for session creation" };
+      }
+
+      // NOTE: Make sure supabaseAdmin is initialized with the service role key
+      // and that your RLS policy allows inserts for service role or for this backend.
+
       if (sessionId) {
         // Try to get existing session
         const { data: existingSession, error } = await supabaseAdmin
