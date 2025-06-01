@@ -16,7 +16,7 @@ const ChatList = ({ conversations, selectedChatId, onSelectChat }) => {
   // If no conversations exist yet
   if (!conversations || conversations.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center p-4 text-center text-gray-500">
+      <div className="flex-1 flex items-center justify-center p-4 text-center text-gray-500 overflow-y-auto">
         <div>
           <p className="mb-2">No conversations yet</p>
           <p className="text-sm">Start a new chat to begin</p>
@@ -26,7 +26,7 @@ const ChatList = ({ conversations, selectedChatId, onSelectChat }) => {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto min-h-0">
       {conversations.map((chat) => (
         <div
           key={chat.id}

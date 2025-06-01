@@ -220,9 +220,9 @@ const ChatContainer = ({ setSentimentData }) => {
   };
 
   return (
-    <div className="flex-1 flex bg-gray-50">
+    <div className="flex-1 flex bg-gray-50 h-screen max-h-screen">
       {/* Chat Sidebar */}
-      <div className="w-80 bg-white border-r flex flex-col">
+      <div className="w-80 bg-white border-r flex flex-col h-full max-h-screen">
         <div className="p-4 border-b flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
         </div>
@@ -237,20 +237,22 @@ const ChatContainer = ({ setSentimentData }) => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col h-full max-h-screen">
         {selectedChat || messages.length > 0 ? (
           <>
             <ChatHeader 
               selectedChat={selectedChat} 
               onDeleteSession={handleDeleteSession}
             />
-            
-            <ChatMessages 
-              messages={messages}
-              isLoading={isLoading}
-            />
-            
-            <div className="p-4 border-t bg-white">
+            {/* Make ChatMessages take all available space and be scrollable */}
+            <div className="flex-1 min-h-0 flex flex-col">
+              <ChatMessages 
+                messages={messages}
+                isLoading={isLoading}
+              />
+            </div>
+            {/* Fix input at the bottom */}
+            <div className="p-4 border-t bg-white flex-shrink-0">
               <ChatInput 
                 onSendMessage={handleSendMessage}
                 isLoading={isLoading}

@@ -23,7 +23,7 @@ export const retrieveConversations = async (req, res) => {
       .select(
         `
         *,
-        message(*)
+        message(*, sentiment_analysis(*))
       `
       )
       .eq("user_id", userId)
@@ -51,11 +51,41 @@ export const retrieveConversations = async (req, res) => {
         description: null,
         messages: messages.length,
         status: null,
-        conversation: messages.map((msg) => ({
-          sender: msg.from_user ? "user" : "therapist",
-          message: msg.message_content,
-          time: dayjs(msg.created_at).format("h:mm A"),
-        })),
+        conversation: messages.map((msg) => {
+          let sentimentWords = [];
+          let sentimentAnalysis = null;
+          let llmWordAnalysis = null;
+          if (
+            Array.isArray(msg.sentiment_analysis) &&
+            msg.sentiment_analysis.length > 0 &&
+            msg.sentiment_analysis[0].analysis_data
+          ) {
+            const analysisData = msg.sentiment_analysis[0].analysis_data;
+            sentimentAnalysis = analysisData;
+            // VADER: only mostEmotionalWords
+            if (
+              analysisData.wordAnalysis &&
+              Array.isArray(analysisData.wordAnalysis.mostEmotionalWords)
+            ) {
+              sentimentWords = analysisData.wordAnalysis.mostEmotionalWords;
+            }
+            // LLM: all wordAnalysis
+            if (
+              analysisData.llmWordAnalysis &&
+              Array.isArray(analysisData.llmWordAnalysis.wordAnalysis)
+            ) {
+              llmWordAnalysis = analysisData.llmWordAnalysis.wordAnalysis;
+            }
+          }
+          return {
+            sender: msg.from_user ? "user" : "therapist",
+            message: msg.message_content,
+            time: dayjs(msg.created_at).format("h:mm A"),
+            sentimentWords,
+            sentimentAnalysis,
+            llmWordAnalysis
+          };
+        }),
       };
     });
 
