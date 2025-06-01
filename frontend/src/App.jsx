@@ -19,10 +19,12 @@ import DoctorSessionsOfUser from "./pages/doctor/SingleSession";
 import PatientDashboard from "./pages/patients/Index";
 
 import Call from "./pages/Welcome/Call";
+import { AuthProvider } from "./context/AuthContext";
+import { DoctorRoute, ProtectedRoute } from "./components/ProtectedRoutes";
 
 const App = () => {
   return (
-    <>
+    <AuthProvider>
       <Routes>
         <Route path="/" element={<Main />}>
           <Route index element={<Welcome />} />
@@ -36,21 +38,24 @@ const App = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/session" element={<Session />} />
 
-        <Route path="/admin" element={<SideLayout />}>
-          <Route index element={<Dashboard />} />
-        </Route>
-
-        <Route path="/doctor" element={<SideLayout />}>
-          <Route index element={<DoctorDashboard />} />
-          <Route path="users" element={<DoctorUsers />} />
-          <Route path="sessions" element={<DoctorSessions />} />
-          <Route path="users/:userId" element={<DoctorSessionsOfUser />} />
+        <Route element={<DoctorRoute />}>
+          <Route path="/admin" element={<SideLayout />}>
+            <Route index element={<Dashboard />} />
+          </Route>
+          <Route path="/doctor" element={<SideLayout />}>
+            <Route index element={<DoctorDashboard />} />
+            <Route path="users" element={<DoctorUsers />} />
+            <Route path="sessions" element={<DoctorSessions />} />
+            <Route path="users/:userId" element={<DoctorSessionsOfUser />} />
+          </Route>
         </Route>
 
         {/* PATIENT route without SideLayout */}
-        <Route path="/patient" element={<PatientDashboard />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/patient" element={<PatientDashboard />} />
+        </Route>
       </Routes>
-    </>
+    </AuthProvider>
   );
 };
 
