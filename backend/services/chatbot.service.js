@@ -519,11 +519,11 @@ class ChatbotService {
                 top_p: 0.9,
             });
 
-            const botResponse = response.choices[0]?.message?.content?.trim();
+      const botResponse = response.choices?.[0]?.message?.content?.trim();
 
-            if (!botResponse) {
-                throw new Error('No response generated from AI model');
-            }
+      if (!botResponse) {
+        throw new Error("No response generated from AI model");
+      }
 
             // Save bot response to database
             const botMessageResult = await this.saveMessage(activeSessionId, botResponse, false);
@@ -553,6 +553,7 @@ class ChatbotService {
             };
         }
     }
+  }
 
     /**
      * Clear conversation history for a user (supports both authenticated and anonymous)
@@ -614,6 +615,7 @@ class ChatbotService {
             return { success: false, error: error.message };
         }
     }
+  }
 
     /**
      * Validate message for crisis content
