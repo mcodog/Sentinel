@@ -93,7 +93,7 @@ export const generateResponse = async (req, res) => {
     if (!input || typeof input !== "string") {
       return res.status(400).json({ error: "Invalid input" });
     }
-    
+
     const isTesting = true;
 
     saveToDatabase(session_id, input, true);
@@ -188,22 +188,93 @@ const saveToDatabase = async (session_id, input, from_user) => {
   }
 };
 
-const retrieveMessagesofSession = async (session_id) => {
-  console.log("Retrieving messages for session:", session_id);
+export const retrieveMessagesofSession = async (req, res) => {
+  const { sessionId } = req.params;
+  console.log("Retrieving messages for session:", sessionId);
   try {
     const { data, error } = await supabaseAdmin
       .from("message")
       .select("*")
-      .eq("session_id", session_id)
+      .eq("session_id", sessionId)
       .order("created_at", { ascending: true });
+
+    const dialogue = data
+      .map((msg) => {
+        const speaker = msg.from_user ? "User" : "AI";
+        return `${speaker}: ${msg.message_content}`;
+      })
+      .join("\n");
+
+    const analyzedData = await analyzeConversation(dialogue);
+    if (analyzedData.error) {
+      console.error("Error analyzing conversation:", analyzedData.error);
+      return res.status(500).json({ error: "Failed to analyze conversation" });
+    }
 
     if (error) {
       console.error("Error retrieving messages:", error);
       throw new Error("Failed to retrieve messages");
     }
-    return data;
+
+    const { data: analyzeData, error: analyzeError } = await supabaseAdmin
+      .from("session_analysis")
+      .upsert({ ...analyzedData, id: sessionId })
+      .select();
+
+    if (analyzeError) throw new Error("Failed to save analysis data");
+
+    return res.status(200).json({ analyzeData });
   } catch (error) {
     console.error("Error in retrieveMessagesofSession:", error);
     throw error;
+  }
+};
+
+const analyzeConversation = async (conversation) => {
+  const chatCompletion = await client.chatCompletion({
+    provider: "fireworks-ai",
+    model: "meta-llama/Llama-3.1-8B-Instruct",
+    messages: [
+      {
+        role: "system",
+        content: `
+You are a helpful assistant. Your task is to analyze a conversation between a user and an AI and return structured data.
+
+Respond ONLY in the following JSON format:
+
+{
+  "summary": "Brief summary of the overall conversation.",
+  "description": "Slightly more detailed narrative of what happened.",
+  "sentiment_score": 0.75, // Float from 0.0 (negative) to 1.0 (positive)
+  "intensity_score": 0.45, // Float from 0.0 (calm) to 1.0 (very intense)
+  "sentiment_category": "neutral", // Must be one of: "positive", "neutral", or "negative"
+  "keywords": ["problem1", "concern2", "symptom3"] // Focus ONLY on user-raised issues or concerns
+}
+
+DO NOT include any extra commentary. The JSON must be properly formatted.
+      `.trim(),
+      },
+      {
+        role: "user",
+        content: `Analyze the following conversation and provide a summary, description, sentiment score, intensity score, sentiment category, and keywords (from user's concerns only):\n\n${conversation}`,
+      },
+    ],
+  });
+
+  // Try to parse structured JSON response
+  try {
+    const parsed = JSON.parse(chatCompletion.choices[0].message.content);
+    return parsed;
+  } catch (error) {
+    console.error("Failed to parse structured response:", error);
+    return {
+      summary: null,
+      description: null,
+      sentiment_score: null,
+      intensity_score: null,
+      sentiment_category: null,
+      keywords: [],
+      error: "Invalid JSON format from model",
+    };
   }
 };
