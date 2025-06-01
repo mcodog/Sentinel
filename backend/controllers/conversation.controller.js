@@ -91,7 +91,8 @@ export const initializeSession = async (req, res) => {
 export const generateResponse = async (req, res) => {
   try {
     const { input, session_id } = req.body;
-    if (!input || typeof input !== "string" || session_id) {
+
+    if (!input || typeof input !== "string") {
       return res.status(400).json({ error: "Invalid input" });
     }
 

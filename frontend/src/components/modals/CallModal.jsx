@@ -7,6 +7,7 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 const CallModal = ({
+  sessionId,
   setCallActive,
   isConversationActive,
   setIsConversationActive,
@@ -25,9 +26,6 @@ const CallModal = ({
 
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
-  const hasInitialized = useRef(false);
-
-  const [sessionId, setSessionId] = useState(null);
 
   useEffect(() => {
     if (!user || !user.id) {
@@ -94,10 +92,6 @@ const CallModal = ({
       recognitionRef.current.stop();
     }
     setIsListening(false);
-  };
-
-  const handleInputChange = (e) => {
-    setInputValue(e.target.value);
   };
 
   const handleSendMessage = async (input) => {
@@ -193,14 +187,20 @@ const CallModal = ({
   };
 
   const generateResponse = async (input, currentChatLog) => {
+    if (!sessionId) {
+      Swal.fire({
+        icon: "error",
+        title: "Session Error",
+        text: "Session ID is not available. Please start a new conversation.",
+      });
+      return;
+    }
+    console.log("Session", sessionId);
     try {
-      console.log("Generating response for input:", sessionId);
       const response = await axiosInstance.post("/conversation", {
         input,
         session_id: sessionId,
       });
-
-      console.log("Response from server:", response.data);
 
       const newMessage = {
         id: Date.now() + 1,
@@ -227,41 +227,9 @@ const CallModal = ({
     }
   };
 
-  const initializeSession = async () => {
-    try {
-      const response = await axiosInstance.post("/conversation/initialize", {
-        type: "call",
-        user_id: user.id,
-      });
-      console.log("Session response:", response.data);
-      if (response.data.message) {
-        setSessionId(response.data.data[0].id);
-        console.log("Session initialized:", response.data.data[0].id);
-      } else {
-        console.error("Failed to initialize session:", response.data.error);
-        Swal.fire({
-          icon: "error",
-          title: "Session Error",
-          text: "Failed to initialize session. Please try again later.",
-        });
-        setCallActive(false);
-        stopConversation();
-        stopAudio();
-        return;
-      }
-    } catch (error) {
-      console.error("Error initializing session:", error);
-    }
-  };
-
   const startConversation = async () => {
     setIsConversationActive(true);
     startListening();
-
-    if (!sessionId && !hasInitialized.current) {
-      hasInitialized.current = true;
-      await initializeSession();
-    }
   };
 
   const stopConversation = () => {
