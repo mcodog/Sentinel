@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
-const client = new InferenceClient(process.env.HUGGING_FACE_API_TOKEN);
+const client = new InferenceClient(process.env.HF_CHATBOT_TOKEN);
 
 // Feature toggle for anonymous chat - set to 'true' to enable, 'false' to disable
 const ALLOW_ANONYMOUS_CHAT = process.env.ALLOW_ANONYMOUS_CHAT === "true";
@@ -372,7 +372,12 @@ class ChatbotService {
     userId,
     userMessage,
     sessionId = null,
-    isAnonymous = false
+    isAnonymous = false,
+    llmOptions = {
+      enableLLM: true,
+      enableLLMWordAnalysis: true,
+      enableTranslation: true
+    }
   ) {
     try {
       // Validate input
@@ -398,15 +403,16 @@ class ChatbotService {
           activeSessionId = this.generateAnonymousSessionId();
         }
 
-        // Analyze sentiment of user message
+        // Analyze sentiment of user message with enhanced LLM analysis
         let sentimentAnalysis = null;
         try {
-          sentimentAnalysis = await sentimentService.analyzeSentiment(
-            trimmedMessage
+          sentimentAnalysis = await sentimentService.analyzeSentimentComplete(
+            trimmedMessage,
+            llmOptions
           );
         } catch (sentimentError) {
           console.warn(
-            "Sentiment analysis failed for anonymous user:",
+            "Enhanced sentiment analysis failed for anonymous user:",
             sentimentError.message
           );
         }
@@ -506,14 +512,15 @@ class ChatbotService {
       const session = sessionResult.session;
       activeSessionId = session.id;
 
-      // Analyze sentiment of user message
+      // Analyze sentiment of user message with enhanced LLM analysis
       let sentimentAnalysis = null;
       try {
-        sentimentAnalysis = await sentimentService.analyzeSentiment(
-          trimmedMessage
+        sentimentAnalysis = await sentimentService.analyzeSentimentComplete(
+          trimmedMessage,
+          llmOptions
         );
       } catch (sentimentError) {
-        console.warn("Sentiment analysis failed:", sentimentError.message);
+        console.warn("Enhanced sentiment analysis failed:", sentimentError.message);
       }
 
       // Save user message to database

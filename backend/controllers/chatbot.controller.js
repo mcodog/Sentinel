@@ -5,7 +5,16 @@ class ChatbotController {
     // Send a message to the chatbot and get a response
     static async sendResponse(req, res) {
         try {
-            const { message, userId, sessionId, isAnonymous = false } = req.body;
+            const {
+                message,
+                userId,
+                sessionId,
+                isAnonymous = false,
+                // LLM configuration options - optional parameters for enhanced sentiment analysis
+                enableLLM = true,
+                enableLLMWordAnalysis = true,
+                enableTranslation = true
+            } = req.body;
 
             // Validate required fields
             if (!message) {
@@ -32,8 +41,15 @@ class ChatbotController {
                 });
             }
 
+            // Prepare LLM configuration options
+            const llmOptions = {
+                enableLLM: Boolean(enableLLM),
+                enableLLMWordAnalysis: Boolean(enableLLMWordAnalysis),
+                enableTranslation: Boolean(enableTranslation)
+            };
+
             // Generate chatbot response with sentiment analysis and storage (database or memory)
-            const result = await ChatbotService.generateResponse(userId, message, sessionId, isAnonymous);
+            const result = await ChatbotService.generateResponse(userId, message, sessionId, isAnonymous, llmOptions);
 
             if (result.success) {
                 return res.status(200).json({
