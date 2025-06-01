@@ -1,4 +1,4 @@
-### Project Completion: 34.5%
+### Project Completion: 66.67%
 
 # Notes
 
