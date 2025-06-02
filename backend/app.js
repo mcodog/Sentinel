@@ -6,6 +6,7 @@ import userRoutes from "./routes/user.routes.js";
 import sessionRoutes from "./routes/session.routes.js";
 import conversationRoutes from "./routes/conversation.routes.js";
 import chatbotRoutes from "./routes/chatbot.routes.js";
+import sentimentSummaryRoutes from "./services/sentiment-summary.routes.js";
 const app = express();
 
 app.use(cors());
@@ -17,5 +18,6 @@ app.use("/api/users", userRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/conversation", conversationRoutes);
 app.use("/api/chatbot", chatbotRoutes);
+app.use("/api/sentiment-summary", sentimentSummaryRoutes);
 
 export default app;

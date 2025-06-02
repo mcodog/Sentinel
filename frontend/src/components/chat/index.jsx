@@ -138,22 +138,24 @@ const ChatComponent = () => {
 
     try {
       let response;
-      
+
       if (isAnonymousMode) {
         // Anonymous user request
-        response = await axiosInstance.post('/chatbot/send', {
+        const payload = {
           message: userMessage.message,
-          sessionId: sessionId,
           isAnonymous: true
-        });
+        };
+        if (sessionId) payload.sessionId = sessionId;
+        response = await axiosInstance.post('/chatbot/send', payload);
       } else {
         // Authenticated user request
-        response = await axiosInstance.post('/chatbot/send', {
+        const payload = {
           message: userMessage.message,
           userId: userId,
-          sessionId: sessionId,
           isAnonymous: false
-        });
+        };
+        if (sessionId) payload.sessionId = sessionId;
+        response = await axiosInstance.post('/chatbot/send', payload);
       }
 
       if (response.data.success) {
@@ -250,11 +252,12 @@ const ChatComponent = () => {
               initial={{ opacity: 0, scale: 0.8, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 20 }}
-              className="m-4 md:mb-4 md:mr-40 w-full max-w-sm md:max-w-md h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-scroll relative"
+              // Responsive, flex layout, fixed height, and prevent overflow
+              className="m-0 md:mb-4 md:mr-40 w-full max-w-full md:max-w-md h-screen md:h-[90vh] bg-white rounded-none md:rounded-2xl shadow-2xl flex flex-col overflow-hidden relative"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="bg-slate-700 text-white p-4 flex items-center justify-between">
+              <div className="bg-slate-700 text-white p-4 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center">
                     <MessageCircle size={16} />
@@ -285,7 +288,7 @@ const ChatComponent = () => {
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 p-4 overflow-y-auto bg-gray-50 chat-scroll">
+              <div className="flex-1 p-4 overflow-y-auto bg-gray-50 chat-scroll min-h-0">
                 {!isLoggedIn && !isAnonymousMode ? (
                   <div className="flex flex-col items-center justify-center h-full text-gray-500">
                     <MessageCircle size={48} className="mb-4 text-slate-400" />
@@ -345,7 +348,7 @@ const ChatComponent = () => {
               </div>
 
               {/* Input Area */}
-              <div className="p-4 bg-white border-t">
+              <div className="p-4 bg-white border-t flex-shrink-0">
                 <form onSubmit={sendMessage} className="flex gap-2">
                   <input
                     ref={inputRef}
