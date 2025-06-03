@@ -20,11 +20,15 @@ import {
   ToggleButtonGroup,
 } from "@mui/material";
 import { Link } from "react-router-dom";
+import { backendActor } from "../../ic/actor.js";
+import { useSelector } from "react-redux";
+import { selectUserId } from "../../features/user/userSelector.js";
 
 export default function Users() {
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [viewMode, setViewMode] = useState("card");
+  const userId = useSelector(selectUserId);
 
   const fetchUsers = async () => {
     try {
@@ -41,6 +45,22 @@ export default function Users() {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    const logActivity = async () => {
+      try {
+        await backendActor.addAuditLog({
+          action: "viewed users list",
+          user_id: userId,
+          details: [],
+        });
+      } catch (err) {
+        console.error("Error logging activity:", err);
+      }
+    };
+
+    logActivity();
+  }, [userId]);
 
   return (
     <div className="p-4">
