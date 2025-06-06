@@ -3,6 +3,7 @@ import DashboardOverview from "../../components/sentiment/dashboard-overview";
 import { backendActor } from "../../ic/actor";
 import { useSelector } from "react-redux";
 import { selectUserId } from "../../features/user/userSelector";
+import { encryptData } from "../../utils/blockchain.utils";
 
 const SentimentAnalyticsPage = () => {
   const userId = useSelector(selectUserId);
@@ -10,11 +11,16 @@ const SentimentAnalyticsPage = () => {
   useEffect(() => {
     const logActivity = async () => {
       try {
-        await backendActor.addAuditLog({
-          action: "viewed semantic anayltics dashboard",
-          user_id: userId,
-          details: [],
-        });
+        const encrypted = await encryptData(
+          {
+            action: "Doctor accessed sentiment analytics page",
+            userId: userId,
+            details: [],
+          },
+          "audit-log"
+        );
+
+        await backendActor.addActivityLog(encrypted);
       } catch (err) {
         console.error("Error logging activity:", err);
       }

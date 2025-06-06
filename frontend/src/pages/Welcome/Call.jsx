@@ -1,5 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import axiosInstance from "../../utils/axios";
+import { backendActor } from "../../ic/actor";
+import { encryptData } from "../../utils/blockchain.utils";
+import { useSelector } from "react-redux";
+import { selectUserId } from "../../features/user/userSelector";
 
 const Call = () => {
   const [inputValue, setInputValue] = useState("");
@@ -9,14 +13,30 @@ const Call = () => {
   const [isConversationActive, setIsConversationActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [onLoad, setOnLoad] = useState(true);
+  const userId = useSelector(selectUserId);
 
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
 
   useEffect(() => {
+    const logActivity = async () => {
+      try {
+        const encrypted = await encryptData({
+          action: "User started a call session",
+          userId: userId,
+          details: [],
+        });
+
+        await backendActor.addActivityLog(encrypted);
+      } catch (err) {
+        console.error("Error logging activity:", err);
+      }
+    };
+
     if (onLoad) {
       startConversation();
       setOnLoad(false);
+      logActivity();
       console.log("Conversation started");
     }
     if (typeof window !== "undefined" && window.webkitSpeechRecognition) {

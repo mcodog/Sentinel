@@ -4,7 +4,7 @@
 
 [x] Initialize Git repo, branches for frontend, backend, blockchain
 [x] Setup Supabase project (auth, database for off-chain storage)
-[] Setup ICP/DFINITY dev environment with Motoko tooling
+[x] Setup ICP/DFINITY dev environment with Motoko tooling
 [x] Create React app skeleton with shared styling (color palette/fonts)
 
 2. Supabase Backend & API
@@ -18,8 +18,8 @@
 
 [x] Design data model for blockchain (hashes, audit logs, consent records)
 [x] Storing transcript hashes + timestamps
-[] Storing audit trail events (access, updates)
-[] Managing patient consent permissions
+[X] Storing audit trail events (access, updates)
+[] ~~Managing patient consent permissions~~
 [x] Deploy initial smart contracts on ICP local or testnet
 
 4. Frontend: Patient Web App (Login + Session Start)
@@ -57,7 +57,7 @@
 [x] Fetch and display transcripts with sentiment highlights
 [] Query blockchain for audit logs related to patient sessions
 [] Display audit trail (access, consent updates) in dashboard
-[] Add UI to manage patient consent stored on blockchain
+[] ~~Add UI to manage patient consent stored on blockchain~~
 
 10. Email Follow-up System
 

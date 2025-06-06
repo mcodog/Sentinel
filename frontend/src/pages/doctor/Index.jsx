@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, act } from "react";
 import Skeleton from "@mui/material/Skeleton";
 import {
   LuUsers,
@@ -8,6 +8,8 @@ import {
   LuShield,
   LuHeart,
   LuTrendingUp,
+  LuEye,
+  LuActivity,
 } from "react-icons/lu";
 import { CiWarning } from "react-icons/ci";
 import {
@@ -24,6 +26,7 @@ import { CiTimer } from "react-icons/ci";
 import { backendActor } from "../../ic/actor";
 import { useSelector } from "react-redux";
 import { selectUserId } from "../../features/user/userSelector";
+import { decryptData, encryptData } from "../../utils/blockchain.utils";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +39,7 @@ const Index = () => {
     mildCases: 78,
   });
   const userId = useSelector(selectUserId);
+  const [activities, setActivities] = useState([]);
 
   const data = [
     { name: "Jan", mild: 4000, moderate: 2400, severe: 1200 },
@@ -45,6 +49,28 @@ const Index = () => {
     { name: "May", mild: 1890, moderate: 4800, severe: 2300 },
     { name: "June", mild: 2390, moderate: 3800, severe: 1900 },
   ];
+
+  const getActivityIcon = (action) => {
+    if (action.includes("consultation") || action.includes("call")) {
+      return <LuUsers className="w-4 h-4 text-blue-500" />;
+    } else if (action.includes("record") || action.includes("accessed")) {
+      return <LuEye className="w-4 h-4 text-green-500" />;
+    } else if (action.includes("chat") || action.includes("session")) {
+      return <LuActivity className="w-4 h-4 text-purple-500" />;
+    }
+    return <Clock className="w-4 h-4 text-gray-500" />;
+  };
+
+  const getActivityColor = (action) => {
+    if (action.includes("consultation") || action.includes("call")) {
+      return "border-l-blue-500 bg-blue-50";
+    } else if (action.includes("record") || action.includes("accessed")) {
+      return "border-l-green-500 bg-green-50";
+    } else if (action.includes("chat") || action.includes("session")) {
+      return "border-l-purple-500 bg-purple-50";
+    }
+    return "border-l-gray-400 bg-gray-50";
+  };
 
   const sessions = [
     {
@@ -104,19 +130,46 @@ const Index = () => {
   };
 
   useEffect(() => {
-    const logActivity = async () => {
+    const fetchAuditLogs = async () => {
       try {
-        await backendActor.addAuditLog({
-          action: "viewed doctor dashboard",
-          user_id: userId,
-          details: [],
-        });
-      } catch (err) {
-        console.error("Error logging activity:", err);
+        const activityLogs = await backendActor.getActivityLog();
+
+        const decryptedLogs = await Promise.all(
+          activityLogs.map(async (activity) => {
+            const decryptedString = await decryptData(
+              { data: activity.detailsHash },
+              "details"
+            );
+            let decryptedDetails = {};
+            try {
+              decryptedDetails = JSON.parse(decryptedString.trim());
+            } catch (e) {
+              console.warn(
+                "Decrypted string is not valid JSON:",
+                decryptedString
+              );
+              decryptedDetails = { raw: decryptedString };
+            }
+
+            return {
+              ...activity,
+              decryptedDetails,
+            };
+          })
+        );
+
+        // Sort by timestamp descending (newest first)
+        decryptedLogs.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+
+        console.log("Decrypted and sorted logs:", decryptedLogs);
+
+        setActivities(decryptedLogs);
+      } catch (error) {
+        console.error("Failed to fetch activity logs:", error);
       }
     };
 
-    logActivity();
+    fetchAuditLogs();
   }, [userId]);
 
   return (
@@ -448,6 +501,59 @@ const Index = () => {
             </div>
           </div>
         )}
+      </div>
+      <div className="p-6 bg-gray-50 min-h-screen">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-gray-800 mb-2">
+            All User Activities
+          </h1>
+          <p className="text-gray-600">
+            Real-time monitoring of user interactions and system events
+          </p>
+        </div>
+        <div className="divide-y divide-gray-100">
+          {activities.map((log) => (
+            <div
+              key={log.currentHash}
+              className={`p-4 border-l-4 ${getActivityColor(
+                log.decryptedDetails.raw.auditLog.action
+              )} hover:bg-gray-50 transition-colors duration-150`}
+            >
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0 mt-1">
+                  {getActivityIcon(log.decryptedDetails.raw.auditLog.action)}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium text-gray-900">
+                      {log.decryptedDetails.raw.auditLog.action}
+                    </h3>
+                    <time className="text-xs text-gray-500">
+                      {new Date(
+                        Number(log.timestamp) / 1000000
+                      ).toLocaleString()}
+                    </time>
+                  </div>
+
+                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium">User ID:</span>
+                      <code className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">
+                        {log.decryptedDetails.raw.auditLog.userId.substring(
+                          0,
+                          8
+                        )}
+                        ...
+                      </code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

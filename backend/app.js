@@ -7,6 +7,8 @@ import sessionRoutes from "./routes/session.routes.js";
 import conversationRoutes from "./routes/conversation.routes.js";
 import chatbotRoutes from "./routes/chatbot.routes.js";
 import sentimentSummaryRoutes from "./services/sentiment-summary.routes.js";
+import blockchainRoutes from "./routes/blockchain.routes.js";
+
 const app = express();
 
 app.use(cors());
@@ -19,5 +21,6 @@ app.use("/api/sessions", sessionRoutes);
 app.use("/api/conversation", conversationRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/sentiment-summary", sentimentSummaryRoutes);
+app.use("/api/blockchain", blockchainRoutes);
 
 export default app;

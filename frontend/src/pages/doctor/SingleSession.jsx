@@ -12,6 +12,7 @@ import { TbReportAnalytics } from "react-icons/tb";
 import UserSentimentSummary from "../../components/sentiment/user-summary";
 import { Switch } from "@mui/material";
 import { backendActor } from "../../ic/actor";
+import { encryptData } from "../../utils/blockchain.utils";
 
 export default function SingleSession() {
   const { userId } = useParams();
@@ -43,12 +44,16 @@ export default function SingleSession() {
   useEffect(() => {
     const logActivity = async () => {
       try {
-        await backendActor.addAuditLog({
-          action:
-            "Viewed user conversation history specifically for user " + userId,
-          user_id: userId,
-          details: [],
-        });
+        const encrypted = await encryptData(
+          {
+            action: "Doctor accessed single user session",
+            userId: userId,
+            details: [],
+          },
+          "audit-log"
+        );
+
+        await backendActor.addActivityLog(encrypted);
       } catch (err) {
         console.error("Error logging activity:", err);
       }

@@ -23,6 +23,7 @@ import { Link } from "react-router-dom";
 import { backendActor } from "../../ic/actor.js";
 import { useSelector } from "react-redux";
 import { selectUserId } from "../../features/user/userSelector.js";
+import { encryptData } from "../../utils/blockchain.utils.js";
 
 export default function Users() {
   const [isLoading, setIsLoading] = useState(true);
@@ -49,11 +50,16 @@ export default function Users() {
   useEffect(() => {
     const logActivity = async () => {
       try {
-        await backendActor.addAuditLog({
-          action: "viewed users list",
-          user_id: userId,
-          details: [],
-        });
+        const encrypted = await encryptData(
+          {
+            action: "Doctor accessed users page",
+            userId: userId,
+            details: [],
+          },
+          "audit-log"
+        );
+
+        await backendActor.addActivityLog(encrypted);
       } catch (err) {
         console.error("Error logging activity:", err);
       }
