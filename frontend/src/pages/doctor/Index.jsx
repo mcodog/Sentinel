@@ -21,6 +21,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { CiTimer } from "react-icons/ci";
+import { backendActor } from "../../ic/actor";
+import { useSelector } from "react-redux";
+import { selectUserId } from "../../features/user/userSelector";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +35,7 @@ const Index = () => {
     normalCases: 156,
     mildCases: 78,
   });
+  const userId = useSelector(selectUserId);
 
   const data = [
     { name: "Jan", mild: 4000, moderate: 2400, severe: 1200 },
@@ -98,6 +102,22 @@ const Index = () => {
       ? "bg-blue-50 text-blue-700"
       : "bg-green-50 text-green-700";
   };
+
+  useEffect(() => {
+    const logActivity = async () => {
+      try {
+        await backendActor.addAuditLog({
+          action: "viewed doctor dashboard",
+          user_id: userId,
+          details: [],
+        });
+      } catch (err) {
+        console.error("Error logging activity:", err);
+      }
+    };
+
+    logActivity();
+  }, [userId]);
 
   return (
     <div className="flex flex-col px-10 py-5">

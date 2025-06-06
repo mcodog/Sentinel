@@ -31,11 +31,7 @@ const Sidebar = () => {
             <>
               <SidebarLink to="/doctor" Icon={LuHouse} text="Dashboard" />
               <SidebarLink to="/doctor/users" Icon={LuUsers} text="Patients" />
-              <SidebarLink
-                to="/doctor/sessions"
-                Icon={LuTimer}
-                text="Sessions"
-              />
+
               <SidebarLink
                 to="/doctor/sentiment-analysis"
                 Icon={TbReportAnalytics}
