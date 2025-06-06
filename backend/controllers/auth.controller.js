@@ -18,6 +18,7 @@ export const register = async (req, res) => {
 
     res.json({
       message: "Register successful",
+      userId: authId,
     });
   } catch (e) {
     return res.status(500).json({ error: e.message });

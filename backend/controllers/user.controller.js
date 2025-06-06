@@ -2,6 +2,17 @@ import { supabaseAdmin } from "../services/supabase.service.js";
 
 import { format, formatDistanceToNow } from "date-fns";
 
+function safeFormatDate(dateString, formatter, fallback = "N/A") {
+  try {
+    if (!dateString) return fallback;
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return fallback;
+    return formatter(date);
+  } catch {
+    return fallback;
+  }
+}
+
 export const getUsers = async (req, res) => {
   try {
     const { data, error } = await supabaseAdmin.from("users").select("*");
@@ -21,21 +32,25 @@ export const getUsers = async (req, res) => {
           await supabaseAdmin.auth.admin.getUserById(user.auth_id);
 
         let auth_identity = null;
-        console.log(authData.last_sign_in_at);
 
         if (!authError) {
           const identity = authData?.user?.identities?.[0];
+          const lastSignInAt = authData?.user?.last_sign_in_at;
+          const createdAt = identity?.created_at;
 
           if (identity) {
             auth_identity = {
               provider: identity.provider,
-              last_sign_in: formatDistanceToNow(
-                new Date(authData.user.last_sign_in_at),
-                {
-                  addSuffix: true,
-                }
-              ), // e.g., "5 hours ago"
-              created_at: format(new Date(identity.created_at), "MMMM d, yyyy"),
+              last_sign_in: safeFormatDate(
+                lastSignInAt,
+                (d) => formatDistanceToNow(d, { addSuffix: true }),
+                "Never signed in"
+              ),
+              created_at: safeFormatDate(
+                createdAt,
+                (d) => format(d, "MMMM d, yyyy"),
+                "Unknown creation date"
+              ),
             };
           }
         }

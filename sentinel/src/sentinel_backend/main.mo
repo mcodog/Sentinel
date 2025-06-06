@@ -20,17 +20,23 @@ actor sentinel_backend {
   };
 
   type Consent = {
-    user_id: Nat;
+    user_id: Text;
     consent_type: Text;
     consent_text_version: Text;
     consent_given: Bool;
     method: Text;
   };
 
-  type AuditLogEntry = {
+  type OldAuditLogEntry = {
     user_id: Nat;
     action: Text;
     details: Text;
+  };
+
+  type AuditLogEntry = {
+    user_id: Text;
+    action: Text;
+    details: ?Text;
   };
 
   type AuditLogBlock = {
@@ -64,8 +70,22 @@ actor sentinel_backend {
   // Consent Blockchain storage
   stable var consent_blockchain : [ConsentBlock] = [];
 
- stable var audit_log_entries: [AuditLogEntry] = [];
- stable var audit_log_blockchain: [AuditLogBlock] = [];
+ // Old stable vars (still required to avoid error for now)
+  stable var audit_log_entries: [OldAuditLogEntry] = [];
+  stable var audit_log_blockchain: [AuditLogBlock] = [];
+
+  // New ones (optional, if replacing)
+  stable var audit_log_entries_v2: [AuditLogEntry] = [];
+  stable var audit_log_blockchain_v2: [AuditLogBlock] = [];
+
+  system func preupgrade() {
+    // Wipe the old data explicitly
+    audit_log_entries := [];
+    audit_log_blockchain := [];
+  };
+
+ stable var auditBlockChain: [AuditLogBlock] = [];
+
 
   // Custom join function for tags
   func joinTags(tags: [Text]): Text {
@@ -93,7 +113,7 @@ actor sentinel_backend {
 
   // Convert consent to a single text string
   func consentToText(consent: Consent): Text {
-    return "user_id: " # Nat.toText(consent.user_id) #
+    return "user_id: " # consent.user_id #
        ", consent_type: " # consent.consent_type #
        ", consent_text_version: " # consent.consent_text_version #
        ", consent_given: " # Bool.toText(consent.consent_given) #
@@ -170,18 +190,22 @@ actor sentinel_backend {
       details = auditEntry.details;
     };
 
-    audit_log_entries := Array.append<AuditLogEntry>(audit_log_entries, [newEntry]);
+    let detailsText = switch (newEntry.details) {
+      case (?d) d;
+      case null "None";
+    };
+
 
     // Serialize audit log entry
     let entryText =
-      "user_id: " # Nat.toText(newEntry.user_id) #
+      "user_id: " # newEntry.user_id #
       ", action: " # newEntry.action #
-      ", details: " # newEntry.details;
+      ", details: " # detailsText;
 
     let entryHash = simpleHash(entryText);
 
-    let newIndex: Nat = if (audit_log_blockchain.size() == 0) 0 else audit_log_blockchain[audit_log_blockchain.size() - 1].index + 1;
-    let previousHash: Text = if (audit_log_blockchain.size() == 0) "0" else audit_log_blockchain[audit_log_blockchain.size() - 1].currentHash;
+    let newIndex: Nat = if (auditBlockChain.size() == 0) 0 else auditBlockChain[auditBlockChain.size() - 1].index + 1;
+    let previousHash: Text = if (auditBlockChain.size() == 0) "0" else auditBlockChain[auditBlockChain.size() - 1].currentHash;
 
     // Concatenate the new index, timestamp (as Nat), entryHash, and previousHash to generate currentHash
     let rawBlockData = Text.concat(Nat.toText(newIndex), entryHash # previousHash);
@@ -195,11 +219,11 @@ actor sentinel_backend {
       currentHash = currentHash;
     };
 
-    audit_log_blockchain := Array.append<AuditLogBlock>(audit_log_blockchain, [newBlock]);
+    auditBlockChain := Array.append<AuditLogBlock>(auditBlockChain, [newBlock]);
   };
 
   public query func getAuditLogs(): async [AuditLogBlock] {
-    return audit_log_blockchain;
+    return auditBlockChain;
   };
 
 
@@ -222,7 +246,7 @@ actor sentinel_backend {
 
   // Public query to remove all audit logs(for dev and testing only!!!)
   public func removeAllAuditEntry(): async() {
-    audit_log_blockchain:= [];
+    auditBlockChain:= [];
     Debug.print("All audit entries are removed");
   };
 
