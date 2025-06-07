@@ -168,6 +168,7 @@ const CallModal = ({
   isConversationActive,
   setIsConversationActive,
 }) => {
+  // alert(import.meta.env.VITE_ELEVEN_LABS_API);
   const isTesting = false;
   const user = useSelector(selectUser);
   const navigate = useNavigate();
@@ -299,8 +300,7 @@ const CallModal = ({
           {
             method: "POST",
             headers: {
-              "xi-api-key":
-                "sk_384bb4d1fbc7df06c6ee3e752ce72e5463fec891ec4acdd5",
+              "xi-api-key": import.meta.env.VITE_ELEVEN_LABS_API,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
