@@ -1,4 +1,3 @@
-// components/cards/LoginCard.jsx
 import { ArrowRight, Lock } from "@/components/Icons/Icons";
 import { Link } from "react-router-dom";
 import FeatureBadge from "@/components/badges/FeatureBadge";

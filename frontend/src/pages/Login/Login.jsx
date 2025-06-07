@@ -6,6 +6,7 @@ import { showLoginError, showUnverifiedError } from "@/utils/auth/alerts.js";
 import { parseLoginError } from "@/utils/auth/parseLoginError.js";
 import axios from "@/utils/axios";
 import LoginCard from "./LoginCard";
+import Swal from "sweetalert2";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -32,7 +33,16 @@ const Login = () => {
           },
         };
         dispatch(setUser(userData));
-        navigate(res.data.parsedUser.role === "user" ? "/patient" : "/doctor");
+        Swal.fire({
+          title: "Log In Successful",
+          text: "Redirecting you now...",
+          icon: "success",
+        });
+        setTimeout(() => {
+          navigate(
+            res.data.parsedUser.role === "user" ? "/patient" : "/doctor"
+          );
+        }, 700);
       }
     } catch (err) {
       const { type, message } = parseLoginError(err);

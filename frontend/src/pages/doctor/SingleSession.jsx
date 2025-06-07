@@ -24,7 +24,7 @@ export default function SingleSession() {
   const [user, setUser] = useState({});
   const currentUser = useSelector(selectUserId);
   const [sentimentMode, setSentimentMode] = useState(false);
-  const [sentimentSource, setSentimentSource] = useState("vader"); // "vader" or "llm"
+  const [sentimentSource, setSentimentSource] = useState("vader");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -87,9 +87,9 @@ export default function SingleSession() {
   };
 
   const fetchSessions = async (page = 1, showPaginationLoader = false) => {
+    setIsLoading(true);
     try {
       if (page === 1) {
-        setIsLoading(true);
       } else if (showPaginationLoader) {
         setIsPaginationLoading(true);
       }
@@ -355,9 +355,7 @@ export default function SingleSession() {
           <Skeleton variant="text" sx={{ fontSize: "2rem", width: "250px" }} />
         ) : (
           <h1 className="text-2xl font-bold">
-            {user?.username
-              ? user.username + "'s Conversations"
-              : "User's Conversations"}
+            {user?.username + "'s Conversations"}
           </h1>
         )}
         <div className="ml-auto flex items-center gap-2">

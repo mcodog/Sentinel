@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axiosInstance from "../utils/axios";
 import Skeleton from "@mui/material/Skeleton";
 import { selectUser } from "../features/user/userSelector";
 import { useSelector } from "react-redux";

@@ -109,6 +109,8 @@ export const retrieveConversations = async (req, res) => {
       .order(sortField, { ascending: sortDirection })
       .range(offset, offset + limitNum - 1);
 
+    console.log(data);
+
     if (error) {
       console.error("Error retrieving conversations:", error);
       return res
@@ -131,19 +133,14 @@ export const retrieveConversations = async (req, res) => {
     }
 
     // Transform the data to match mockChatSessions format
-    const formattedConversations = data.map((session) => {
-      const messages = session.message || [];
-      return {
-        id: session.id,
-        type: session.type,
-        date: dayjs(session.created_at).format("ddd, MMM D"),
-        description: null,
-        messages: messages.length,
-        status: null,
-        conversation: messages.map((msg) => {
+    const formattedConversations = data
+      .map((session) => {
+        const messages = session.message || [];
+        const conversation = messages.map((msg) => {
           let sentimentWords = [];
           let sentimentAnalysis = null;
           let llmWordAnalysis = null;
+
           if (
             Array.isArray(msg.sentiment_analysis) &&
             msg.sentiment_analysis.length > 0 &&
@@ -151,14 +148,14 @@ export const retrieveConversations = async (req, res) => {
           ) {
             const analysisData = msg.sentiment_analysis[0].analysis_data;
             sentimentAnalysis = analysisData;
-            // VADER: only mostEmotionalWords
+
             if (
               analysisData.wordAnalysis &&
               Array.isArray(analysisData.wordAnalysis.mostEmotionalWords)
             ) {
               sentimentWords = analysisData.wordAnalysis.mostEmotionalWords;
             }
-            // LLM: all wordAnalysis
+
             if (
               analysisData.llmWordAnalysis &&
               Array.isArray(analysisData.llmWordAnalysis.wordAnalysis)
@@ -166,6 +163,7 @@ export const retrieveConversations = async (req, res) => {
               llmWordAnalysis = analysisData.llmWordAnalysis.wordAnalysis;
             }
           }
+
           return {
             sender: msg.from_user ? "user" : "therapist",
             message: msg.message_content,
@@ -174,27 +172,40 @@ export const retrieveConversations = async (req, res) => {
             sentimentAnalysis,
             llmWordAnalysis,
           };
-        }),
-        session_analysis: session.session_analysis
-          ? {
-              summary: session.session_analysis.summary || null,
-              description: session.session_analysis.description || null,
-              sentiment_score: session.session_analysis.sentiment_score || null,
-              intensity_score: session.session_analysis.intensity_score || null,
-              sentiment_category:
-                session.session_analysis.sentiment_category || null,
-              keywords: session.session_analysis.keywords || [],
-            }
-          : {
-              summary: null,
-              description: null,
-              sentiment_score: null,
-              intensity_score: null,
-              sentiment_category: null,
-              keywords: [],
-            },
-      };
-    });
+        });
+
+        return {
+          id: session.id,
+          type: session.type,
+          date: dayjs(session.created_at).format("ddd, MMM D"),
+          description: null,
+          messages: messages.length,
+          status: null,
+          conversation,
+          session_analysis: session.session_analysis
+            ? {
+                summary: session.session_analysis.summary || null,
+                description: session.session_analysis.description || null,
+                sentiment_score:
+                  session.session_analysis.sentiment_score || null,
+                intensity_score:
+                  session.session_analysis.intensity_score || null,
+                sentiment_category:
+                  session.session_analysis.sentiment_category || null,
+                keywords: session.session_analysis.keywords || [],
+              }
+            : {
+                summary: null,
+                description: null,
+                sentiment_score: null,
+                intensity_score: null,
+                sentiment_category: null,
+                keywords: [],
+              },
+        };
+      })
+      // ✅ Filter out empty conversations
+      .filter((session) => session.conversation.length > 0);
 
     // Calculate pagination metadata
     const totalPages = Math.ceil(count / limitNum);
