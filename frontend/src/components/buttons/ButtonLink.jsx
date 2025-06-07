@@ -4,6 +4,7 @@ export default function ButtonLink({
   children,
   variant = "primary",
   maxWidth = false,
+  onClick,
 }) {
   const base =
     "px-8 py-3 font-semibold rounded-lg transition-all duration-300 transform hover:-translate-y-1";
@@ -17,6 +18,7 @@ export default function ButtonLink({
 
   return (
     <Link
+      onClick={onClick}
       to={to}
       className={`${maxWidth ? "w-full block text-center" : ""} ${base} ${
         styles[variant]
