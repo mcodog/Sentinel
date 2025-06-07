@@ -48,12 +48,12 @@ const Main = () => {
       <div className="relative z-0 min-h-screen pt-26">
         <Outlet />
       </div>
-      
+
       {/* Floating Action Buttons */}
       <div className="fixed bottom-6 md:bottom-10 right-4 md:right-20 flex flex-col md:flex-row gap-4 items-end md:items-center z-50">
         {/* Chat Component */}
         <ChatComponent />
-        
+
         {/* Call Button */}
         <div
           onClick={initializeSession}
@@ -64,16 +64,14 @@ const Main = () => {
           <p className="text-sm md:text-base">Call</p>
         </div>
       </div>
-      
+
       {callActive && (
-        <div className="fixed bottom-0 right-0 left-0 top-0 bg-black/50 z-50 flex items-center justify-center">
-          <CallModal
-            sessionId={sessionId}
-            setCallActive={setCallActive}
-            isConversationActive={isConversationActive}
-            setIsConversationActive={setIsConversationActive}
-          />
-        </div>
+        <CallModal
+          sessionId={sessionId}
+          setCallActive={setCallActive}
+          isConversationActive={isConversationActive}
+          setIsConversationActive={setIsConversationActive}
+        />
       )}
     </div>
   );

@@ -129,9 +129,9 @@ const Index = () => {
           <Skeleton variant="rectangular" width={400} height={200} />
         </div>
       ) : (
-        <div className="flex items-center justify-between mr-5 gap-0">
+        <div className="flex items-center justify-between mr-5 gap-10">
           {/* Users & Sessions Widget */}
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-blue-200 min-w-[320px]">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-blue-200 flex-grow max-h-[250px]">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="bg-blue-500 p-3 rounded-full shadow-md">
@@ -187,7 +187,7 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-green-200 min-w-[320px]">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-green-200 flex-grow max-h-[250px]">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="bg-green-500 p-3 rounded-full shadow-md">
@@ -262,7 +262,7 @@ const Index = () => {
           </div>
 
           {/* Summary Statistics Widget */}
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-purple-200 min-w-[320px]">
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-purple-200 flex-grow max-h-[250px]">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="bg-purple-500 p-3 rounded-full shadow-md">

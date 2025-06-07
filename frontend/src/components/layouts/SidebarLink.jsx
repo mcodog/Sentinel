@@ -10,19 +10,23 @@ const SidebarLink = ({ Icon, text, to }) => {
   }
 
   return (
-    <Link
-      to={to}
-      className={`flex items-center justify-center p-4 ${
-        isActive ? "bg-[#222831] text-white" : ""
-      }`}
-    >
-      <div className="grid grid-cols-[25%_75%] items-center w-full gap-4">
-        <div className="flex justify-end">
-          <Icon size={19} />
+    <div className="p-2">
+      <Link
+        to={to}
+        className={`flex items-center justify-center p-4 rounded-lg ${
+          isActive
+            ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white"
+            : ""
+        }`}
+      >
+        <div className="grid grid-cols-[15%_85%] items-center w-full gap-4">
+          <div className="flex justify-end">
+            <Icon size={19} />
+          </div>
+          <p className="text-start">{text}</p>
         </div>
-        <p className="text-start">{text}</p>
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 };
 

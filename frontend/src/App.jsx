@@ -22,6 +22,7 @@ import PatientDashboard from "./pages/patients/Index";
 
 import { AuthProvider } from "./context/AuthContext";
 import { DoctorRoute, ProtectedRoute } from "./components/ProtectedRoutes";
+import AudioVisualizer from "./components/AudioVisualizer";
 
 // import TestBlockchain from "./pages/Testblockchain.jsx";
 
@@ -56,7 +57,7 @@ const App = () => {
             <Route path="users/:userId" element={<DoctorSessionsOfUser />} />
           </Route>
         </Route>
-
+        <Route path="/visualizer" element={<AudioVisualizer />} />
         {/* PATIENT route without SideLayout */}
         <Route element={<ProtectedRoute />}>
           <Route path="/patient" element={<PatientDashboard />} />
