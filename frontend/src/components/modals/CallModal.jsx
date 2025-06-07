@@ -8,6 +8,8 @@ import { useNavigate } from "react-router-dom";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import ButtonLink from "@/components/buttons/ButtonLink";
+import { backendActor } from "../../ic/actor";
 
 const BlobSphere = ({ analyser, isListening, isSpeaking }) => {
   const meshRef = useRef();
@@ -106,6 +108,8 @@ const BlobSphere = ({ analyser, isListening, isSpeaking }) => {
         materialRef.current.uniforms.color.value = new THREE.Color(1, 1, 1);
         materialRef.current.uniforms.emissive.value = new THREE.Color(1, 1, 1);
         materialRef.current.uniforms.emissiveIntensity.value = 0.2;
+        meshRef.current.rotation.y += 0.005;
+        meshRef.current.rotation.x += 0.002;
         return;
       }
 
@@ -177,6 +181,7 @@ const CallModal = ({
   const [currentAudio, setCurrentAudio] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [systemResponse, setSystemResponse] = useState("");
+  const [consentDialogue, setConsentDialogue] = useState(false);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [onLoad, setOnLoad] = useState(true);
@@ -234,6 +239,40 @@ const CallModal = ({
       }
     };
   }, []);
+
+  const handleAnalyzeConversation = async () => {
+    console.log("analysis");
+    try {
+      const res = await axiosInstance.get(`conversation/session/${sessionId}`);
+      const analysisData = res.data.analyzeData[0];
+      console.log(analysisData);
+      const blockchain = await backendActor.addBlock({
+        sentimentScore: analysisData.sentiment_score,
+        tags: analysisData.keywords,
+        summary: analysisData.summary,
+        sentimentCategory: analysisData.sentiment_category,
+      });
+
+      console.log(blockchain);
+      // http://localhost:5000/api/conversation/session/197
+      Swal.fire({
+        title: "Analysis Succesful!",
+        text: "Your data is ready to be reviewed by your psychologist.",
+        icon: "success",
+      });
+
+      // setTimeout(() => {
+      //   navigate("/");
+      // }, 1000);
+    } catch (e) {
+      console.log(e);
+      Swal.fire({
+        title: "Something went wrong",
+        text: "Please try again later.",
+        icon: "error",
+      });
+    }
+  };
 
   const startListening = () => {
     if (recognitionRef.current) {
@@ -402,8 +441,14 @@ const CallModal = ({
     }
   };
 
+  const hasPlayedRef = useRef(false);
+
   const startConversation = async () => {
+    if (hasPlayedRef.current) return;
+
+    hasPlayedRef.current = true; // Mark as played to prevent reruns
     await playTTS("Hello, I am Sentinel! How may I help you");
+
     setTimeout(() => {
       setIsConversationActive(true);
       startListening();
@@ -432,9 +477,27 @@ const CallModal = ({
     }
   };
 
+  const handleEndCall = () => {
+    stopConversation();
+    stopAudio();
+    setConsentDialogue(true);
+  };
+
   return (
-    <div className="fixed bottom-0 right-0 left-0 top-0 bg-black/70 z-50 flex flex-col items-center justify-center">
-      <div className="relative -top-50 z-[1001] w-[500px] h-[500px]">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+      className="fixed bottom-0 right-0 left-0 top-0 bg-black/70 z-50 flex flex-col items-center justify-center"
+    >
+      <motion.div
+        initial={{ y: 50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 50, opacity: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="relative -top-50 z-[1001] w-[500px] h-[500px]"
+      >
         <Canvas camera={{ position: [0, 0, 4] }}>
           <ambientLight intensity={0.3} />
           <directionalLight position={[2, 2, 5]} intensity={0.8} />
@@ -445,7 +508,7 @@ const CallModal = ({
           />
           <OrbitControls enabled={false} />
         </Canvas>
-      </div>
+      </motion.div>
       <div className="relative p-4 w-6xl flex flex-col items-center justify-center -mt-60 min-h-20 bg-white rounded-2xl">
         <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-b-8 border-transparent border-b-white" />
         <AnimatePresence mode="wait">
@@ -498,17 +561,57 @@ const CallModal = ({
       </div>
       <div>
         <button
-          onClick={() => {
-            setCallActive(false);
-            stopConversation();
-            stopAudio();
-          }}
-          className="absolute top-10 right-10 inline-block px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors duration-300"
+          onClick={handleEndCall}
+          className="absolute top-10 right-10 inline-block text-lg px-8 py-4 bg-red-500 text-white rounded hover:bg-red-600 transition-colors duration-300"
         >
           End Call
         </button>
       </div>
-    </div>
+
+      {consentDialogue && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="absolute top-0 left-0 z-[1002] w-screen h-screen bg-black/50 flex items-center justify-center"
+        >
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 50, opacity: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="h-max-[700px] w-[1200px] bg-white rounded-2xl shadow-2xl p-12"
+          >
+            <div className="font-black text-2xl text-center">
+              You have ended the call. Thank you for using Sentinel!
+            </div>
+            <div className="text-center">
+              We'd like to ask for your consent in running our models to analyze
+              your conversation. Please confirm if this is okay with you.
+            </div>
+            <div className="mt-8">
+              <div className="flex justify-center items-center gap-4">
+                <ButtonLink
+                  onClick={handleAnalyzeConversation}
+                  variant="primary"
+                >
+                  I Consent
+                </ButtonLink>
+                <ButtonLink
+                  onClick={() => {
+                    setCallActive(false);
+                  }}
+                  variant="secondary"
+                >
+                  Decline
+                </ButtonLink>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </motion.div>
   );
 };
 

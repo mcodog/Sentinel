@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PROMPT = `You are Sentinel, a compassionate and professional mental health therapy chatbot. Your purpose is to provide emotional support, active listening, and therapeutic guidance to users who may be struggling with mental health challenges.
-
+Please shorten response. As much as possible in the first few lines of the conversation (EXTREMELY IMPORTANT)
 Core Guidelines:
 - Always maintain a warm, empathetic, and non-judgmental tone
 - Practice active listening by acknowledging and validating user emotions
@@ -133,79 +133,74 @@ export const retrieveConversations = async (req, res) => {
     }
 
     // Transform the data to match mockChatSessions format
-    const formattedConversations = data
-      .map((session) => {
-        const messages = session.message || [];
-        const conversation = messages.map((msg) => {
-          let sentimentWords = [];
-          let sentimentAnalysis = null;
-          let llmWordAnalysis = null;
+    const formattedConversations = data.map((session) => {
+      const messages = session.message || [];
+      const conversation = messages.map((msg) => {
+        let sentimentWords = [];
+        let sentimentAnalysis = null;
+        let llmWordAnalysis = null;
+
+        if (
+          Array.isArray(msg.sentiment_analysis) &&
+          msg.sentiment_analysis.length > 0 &&
+          msg.sentiment_analysis[0].analysis_data
+        ) {
+          const analysisData = msg.sentiment_analysis[0].analysis_data;
+          sentimentAnalysis = analysisData;
 
           if (
-            Array.isArray(msg.sentiment_analysis) &&
-            msg.sentiment_analysis.length > 0 &&
-            msg.sentiment_analysis[0].analysis_data
+            analysisData.wordAnalysis &&
+            Array.isArray(analysisData.wordAnalysis.mostEmotionalWords)
           ) {
-            const analysisData = msg.sentiment_analysis[0].analysis_data;
-            sentimentAnalysis = analysisData;
-
-            if (
-              analysisData.wordAnalysis &&
-              Array.isArray(analysisData.wordAnalysis.mostEmotionalWords)
-            ) {
-              sentimentWords = analysisData.wordAnalysis.mostEmotionalWords;
-            }
-
-            if (
-              analysisData.llmWordAnalysis &&
-              Array.isArray(analysisData.llmWordAnalysis.wordAnalysis)
-            ) {
-              llmWordAnalysis = analysisData.llmWordAnalysis.wordAnalysis;
-            }
+            sentimentWords = analysisData.wordAnalysis.mostEmotionalWords;
           }
 
-          return {
-            sender: msg.from_user ? "user" : "therapist",
-            message: msg.message_content,
-            time: dayjs(msg.created_at).format("h:mm A"),
-            sentimentWords,
-            sentimentAnalysis,
-            llmWordAnalysis,
-          };
-        });
+          if (
+            analysisData.llmWordAnalysis &&
+            Array.isArray(analysisData.llmWordAnalysis.wordAnalysis)
+          ) {
+            llmWordAnalysis = analysisData.llmWordAnalysis.wordAnalysis;
+          }
+        }
 
         return {
-          id: session.id,
-          type: session.type,
-          date: dayjs(session.created_at).format("ddd, MMM D"),
-          description: null,
-          messages: messages.length,
-          status: null,
-          conversation,
-          session_analysis: session.session_analysis
-            ? {
-                summary: session.session_analysis.summary || null,
-                description: session.session_analysis.description || null,
-                sentiment_score:
-                  session.session_analysis.sentiment_score || null,
-                intensity_score:
-                  session.session_analysis.intensity_score || null,
-                sentiment_category:
-                  session.session_analysis.sentiment_category || null,
-                keywords: session.session_analysis.keywords || [],
-              }
-            : {
-                summary: null,
-                description: null,
-                sentiment_score: null,
-                intensity_score: null,
-                sentiment_category: null,
-                keywords: [],
-              },
+          sender: msg.from_user ? "user" : "therapist",
+          message: msg.message_content,
+          time: dayjs(msg.created_at).format("h:mm A"),
+          sentimentWords,
+          sentimentAnalysis,
+          llmWordAnalysis,
         };
-      })
-      // ✅ Filter out empty conversations
-      .filter((session) => session.conversation.length > 0);
+      });
+
+      return {
+        id: session.id,
+        type: session.type,
+        date: dayjs(session.created_at).format("ddd, MMM D"),
+        description: null,
+        messages: messages.length,
+        status: null,
+        conversation,
+        session_analysis: session.session_analysis
+          ? {
+              summary: session.session_analysis.summary || null,
+              description: session.session_analysis.description || null,
+              sentiment_score: session.session_analysis.sentiment_score || null,
+              intensity_score: session.session_analysis.intensity_score || null,
+              sentiment_category:
+                session.session_analysis.sentiment_category || null,
+              keywords: session.session_analysis.keywords || [],
+            }
+          : {
+              summary: null,
+              description: null,
+              sentiment_score: null,
+              intensity_score: null,
+              sentiment_category: null,
+              keywords: [],
+            },
+      };
+    });
 
     // Calculate pagination metadata
     const totalPages = Math.ceil(count / limitNum);
@@ -247,7 +242,8 @@ export const initializeSession = async (req, res) => {
       .from("sessions")
       .upsert(sessionData)
       .select();
-    res.json({ message: "Session initialized successfully", data });
+    console.log(data);
+    return res.json({ message: "Session initialized successfully", data });
   } catch (error) {
     console.error("Error initializing session:", error);
     res.status(500).json({ error: "Failed to initialize session" });

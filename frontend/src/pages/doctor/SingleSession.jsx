@@ -41,6 +41,7 @@ export default function SingleSession() {
   }, [userId]);
 
   useEffect(() => {
+    console.log("logging to bllockchian");
     const logActivity = async () => {
       try {
         await backendActor.addAuditLog({

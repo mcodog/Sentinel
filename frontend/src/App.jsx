@@ -24,13 +24,13 @@ import { AuthProvider } from "./context/AuthContext";
 import { DoctorRoute, ProtectedRoute } from "./components/ProtectedRoutes";
 import AudioVisualizer from "./components/AudioVisualizer";
 
-// import TestBlockchain from "./pages/Testblockchain.jsx";
+import TestBlockchain from "./pages/Testblockchain.jsx";
 
 const App = () => {
   return (
     <AuthProvider>
       <Routes>
-        {/* <Route path="/testblockchain" element={<TestBlockchain />} /> */}
+        <Route path="/testblockchain" element={<TestBlockchain />} />
         <Route path="/" element={<Main />}>
           <Route index element={<Welcome />} />
         </Route>
