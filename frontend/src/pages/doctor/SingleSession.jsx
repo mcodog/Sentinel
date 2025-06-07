@@ -106,7 +106,7 @@ export default function SingleSession() {
         `/conversation/${userId || "default_user_id"}?${params}`
       );
 
-      // console.log("Fetched sessions:", res.data);
+      console.log("Fetched sessions:", res.data);
 
       if (res.status === 200) {
         const { conversations, pagination: paginationData } = res.data;

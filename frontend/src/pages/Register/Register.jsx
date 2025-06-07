@@ -1,8 +1,6 @@
 import React, { useState } from "react";
-import TextInput from "@/components/inputs/TextInput";
-import PrimeButton from "@/components/buttons/PrimeButton";
 import { useNavigate, Link } from "react-router-dom";
-import { backendActor } from "../ic/actor";
+import { backendActor } from "../../ic/actor";
 
 import axios from "@/utils/axios";
 import Swal from "sweetalert2";

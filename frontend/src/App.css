@@ -43,3 +43,7 @@
 .chat-scroll::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+.fullWidth {
+  width: 1000px !important;
+}
