@@ -2,9 +2,9 @@ import "./App.css";
 import { Routes, Route } from "react-router-dom";
 import Main from "./components/layouts/Main";
 import Welcome from "./pages/Welcome/Index";
-import Login from "./pages/Login";
+import Login from "./pages/Login/Login";
 import Session from "./pages/Session";
-import Register from "./pages/Register";
+import Register from "./pages/Register/Register";
 import Dashboard from "./pages/Dashboard/Index";
 import SideLayout from "./components/layouts/Side";
 
@@ -20,20 +20,18 @@ import SentimentAnalyticsPage from "./pages/doctor/SentimentAnalytics";
 // FOR PATIENTS
 import PatientDashboard from "./pages/patients/Index";
 
-import Call from "./pages/Welcome/Call";
 import { AuthProvider } from "./context/AuthContext";
 import { DoctorRoute, ProtectedRoute } from "./components/ProtectedRoutes";
 
-import TestBlockchain from "./pages/Testblockchain.jsx";
+// import TestBlockchain from "./pages/Testblockchain.jsx";
 
 const App = () => {
   return (
     <AuthProvider>
       <Routes>
-        <Route path="/testblockchain" element={<TestBlockchain />} />
+        {/* <Route path="/testblockchain" element={<TestBlockchain />} /> */}
         <Route path="/" element={<Main />}>
           <Route index element={<Welcome />} />
-          <Route path="/call" element={<Call />} />
         </Route>
 
         <Route path="session" element={<SessionLayout />}>
@@ -51,7 +49,10 @@ const App = () => {
             <Route index element={<DoctorDashboard />} />
             <Route path="users" element={<DoctorUsers />} />
             <Route path="sessions" element={<DoctorSessions />} />
-            <Route path="sentiment-analysis" element={<SentimentAnalyticsPage />} />
+            <Route
+              path="sentiment-analysis"
+              element={<SentimentAnalyticsPage />}
+            />
             <Route path="users/:userId" element={<DoctorSessionsOfUser />} />
           </Route>
         </Route>

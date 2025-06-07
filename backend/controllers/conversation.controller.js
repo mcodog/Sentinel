@@ -172,7 +172,7 @@ export const retrieveConversations = async (req, res) => {
             time: dayjs(msg.created_at).format("h:mm A"),
             sentimentWords,
             sentimentAnalysis,
-            llmWordAnalysis
+            llmWordAnalysis,
           };
         }),
         session_analysis: session.session_analysis

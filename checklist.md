@@ -4,14 +4,14 @@
 
 [x] Initialize Git repo, branches for frontend, backend, blockchain
 [x] Setup Supabase project (auth, database for off-chain storage)
-[] Setup ICP/DFINITY dev environment with Motoko tooling
+[x] Setup ICP/DFINITY dev environment with Motoko tooling
 [x] Create React app skeleton with shared styling (color palette/fonts)
 
 2. Supabase Backend & API
 
 [x] Define and create tables: users, sessions, transcripts metadata (off-chain storage)
 [x] Implement API endpoints for user management, session creation
-[] Implement endpoints for storing and fetching encrypted transcript data
+[x] Implement endpoints for storing and fetching encrypted transcript data
 [x] Integrate authentication with Supabase (patients & doctors)
 
 3. ICP Motoko Smart Contracts: Blockchain Core
@@ -26,7 +26,7 @@
 
 [x] Create login/register UI linked to Supabase auth
 [x] Implement session start UI (button to initiate chat/call)
-[] Hook session start to backend & blockchain (store session start event on-chain)
+[x] Hook session start to backend & blockchain (store session start event on-chain)
 
 5. Frontend: Doctor Dashboard Base
 

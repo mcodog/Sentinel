@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
-import TextInput from "@/components/inputs/TextInput";
-import PrimeButton from "@/components/buttons/PrimeButton";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { backendActor } from "../../ic/actor";
 
 import axios from "@/utils/axios";
 import Swal from "sweetalert2";
@@ -15,6 +14,7 @@ const Register = () => {
     lastname: "",
     gender: "",
     dob: "",
+    agreeToTerms: false,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -116,6 +116,7 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Form Data:", formData);
 
     // Check age requirement before proceeding
     if (formData.dob) {
@@ -135,7 +136,24 @@ const Register = () => {
 
     try {
       const res = await axios.post("/auth/register", formData);
+      console.log("Registration Response:", res.data);
       if (res.data.message === "Register successful") {
+        await backendActor.addConsentBlock({
+          user_id: res.data.userId,
+          consent_type: "PrivacyPolicy",
+          consent_given: formData.agreeToTerms,
+          consent_text_version: "I agree to the Privacy Policy",
+          method: "checkbox",
+        });
+
+        await backendActor.addConsentBlock({
+          user_id: res.data.userId,
+          consent_type: "TermsOfService",
+          consent_given: formData.agreeToTerms,
+          consent_text_version: "I agree to the Terms of Service",
+          method: "checkbox",
+        });
+
         Swal.fire({
           title: "Successfully Registered!",
           text: "Please check your email and verify your account before logging in. Redirecting you to login page...",
@@ -149,6 +167,7 @@ const Register = () => {
         }, 4000);
       }
     } catch (e) {
+      console.error("Registration Error:", e);
       if (e.response.data.error.startsWith("For security purposes")) {
         Swal.fire({
           title: "Request Timeout",
@@ -175,10 +194,11 @@ const Register = () => {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -379,6 +399,44 @@ const Register = () => {
                     required
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-white/50 backdrop-blur-sm"
                   />
+                </div>
+              </div>
+
+              {/* Terms of Agreement Checkbox */}
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    id="agreeToTerms"
+                    name="agreeToTerms"
+                    checked={formData.agreeToTerms}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                  />
+                  <label
+                    htmlFor="agreeToTerms"
+                    className="text-sm text-gray-700 leading-relaxed"
+                  >
+                    I agree to the{" "}
+                    <a
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
+                    >
+                      Terms of Service
+                    </a>{" "}
+                    and{" "}
+                    <a
+                      href="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
+                    >
+                      Privacy Policy
+                    </a>
+                  </label>
                 </div>
               </div>
 
